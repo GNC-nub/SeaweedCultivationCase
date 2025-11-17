@@ -244,6 +244,10 @@ AvgTempKbyhr_part2 <- AvgTempKbyhr$x[860:4009] #later part of original temp file
 T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_part2), method = "linear", rule = 2) #the temp forcing function
 T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
 #####################################################################################################################
+
+
+
+#HIEEEEEEER zijn we gebleven 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Model run (the differential equation solver)
 sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)

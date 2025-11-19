@@ -13,8 +13,7 @@
 #Reminder to set working directory to location of data
 setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
-install.packages("ncdf4")
-library(ncdf4)
+
 
 #Import libraries
 library(deSolve)
@@ -150,9 +149,6 @@ times_NS <- seq(0, 5112, 1) #213 days stepped hourly
 #NOAA irradiance data set-up: NOAASurfaceIrradiance
 Irradiance <- read.csv("IR_result_PAR.csv", header = TRUE)
 
-#for (date_time in Irradiance) {
-  #if(block == 24) 
-
 Irradiance$date_time[Irradiance$block == 24] <- paste0(Irradiance$date_time[Irradiance$block == 24], " 00:00:00")
 
 Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in UTC (5 hours ahead)
@@ -250,6 +246,8 @@ temp <- temp %>%
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
+
 
 # Rates_NS over time 
 temp$TZ_K <- temp$TZ+273.15 #kelvin
@@ -257,17 +255,23 @@ T_field <- function(t) {temp$TZ_K[t]}
 T_NS <- T_field(0:5111)
 N_field <- function(t) {nitrate_hourly$no3[t]}
 
-# IDK what to do with CO_2 tbh!!!! 
-CO_2 <-
+# CO_2 !!!! 
+install.packages("ncdf4")
+library(ncdf4)
 DIC <- nc_open("TCO2_NNGv2LDEO_climatology.nc") #Import DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
+CO_2 <- ncvar_get(DIC, "var")
+
+
+CO_2 <- mean(DIC.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
   #need units to match K_C (molDIC/L)
 CO_2 <- CO_2/1000000
 
+
+
+I_field = function(t) {Irradiance$PAR_1m[t]}
+
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
-
-
 
 
 

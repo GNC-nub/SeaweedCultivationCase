@@ -11,7 +11,7 @@
 ####################################################################################################################
 
 #Reminder to set working directory to location of data
-setwd("D:/R/Wageningen/Seagriculture")
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
 #Import libraries
 library(deSolve)
@@ -58,7 +58,7 @@ w_O2 <- 32 #g/mol
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ##### Parameters compiled #####
-params_Lo <- c(#maximum volume-specific assimilation rate of N before temperature correction
+params_NS <- c(#maximum volume-specific assimilation rate of N before temperature correction
   JENAM = 1.5e-4, #mol N / molV / h
   #half saturation constant of N uptake
   K_N = 2.5e-6, #molNO3 and NO2/L
@@ -145,8 +145,8 @@ times_Y2_RomePt2 <- seq(0, 2208, 1) #92 days stepped hourly
 
 ###### Set up NOAA data (for Irradiance forcing) ####
 #NOAA irradiance data set-up: NOAASurfaceIrradiance
-setwd("D:/R/Wageningen/Seagriculture/Case study")
-Irradiance <- read.csv("IrradianceNovMay/IR_result_PAR.csv", header = TRUE)
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea")
+Irradiance <- read.csv("IR_result_PAR.csv", header = TRUE)
 
 #for (date_time in Irradiance) {
   #if(block == 24) 
@@ -171,8 +171,8 @@ Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in 
 #############
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #YEAR 1
-setwd("D:/R/Wageningen/Seagriculture/Case study")
-nitrate <- read.csv("NitrateNovMay/Nitrate_NovMay.csv")
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea")
+nitrate <- read.csv("Nitrate_NovMay.csv")
 nitrate %>%
   mutate()
 
@@ -223,7 +223,7 @@ temp <- temp %>%
     TZ = TZ/10
   )
 
-#IGNORE
+
 #Import Sled Hobo (cynlinder) of just temp
 Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
 Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
@@ -245,12 +245,26 @@ T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_p
 T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
 #####################################################################################################################
 
+# Rates_NS over time 
+temp$TZ_K <- temp$TZ+273.15 #kelvin
+T_field <- function(t) {temp$TZ_K[t]}
+T_NS <- T_field(0:5111)
+N_field <- function(t) {nitrate_hourly$no3[t]}
+CO_2 <-
+
 
 
 #HIEEEEEEER zijn we gebleven 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Model run (the differential equation solver)
 sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
+# MODEL North Sea (region Zeeland)
+sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
+
+
+
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Setting up the forcing functions with field data for Sled line 2

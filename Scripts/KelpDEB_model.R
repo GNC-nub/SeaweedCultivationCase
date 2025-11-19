@@ -10,7 +10,7 @@ library(deSolve)
 #The deSolve structured model
 #note that the time, state, and parameters in this function definition should always remain in this format
 #regardless of how these pieces of info are labelled
-rates_Lo <- function(t, state, parameters) { 
+rates_NS <- function(t, state, parameters) { 
   
   with(as.list(c(state, parameters)), { 
     

@@ -1,5 +1,3 @@
-#TEST LINDEBOOMTAK
-
 ####################################################################################################################
 #Run file of Sugar Kelp model from Venolia et al (in press)
 #Site names here begin with names other than those used in the manuscript
@@ -116,6 +114,7 @@ params_Lo <- c(#maximum volume-specific assimilation rate of N before temperatur
 state_Lo <- c(m_EC = 0.002, #0.1, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
               m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
               M_V = 0.05/(w_V+0.01*w_EN+0.002*w_EC)) #molM_V #initial mass of structure
+#Lo is based on the Lorenna. 
 
 state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
                 m_EN = 0.09, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
@@ -225,11 +224,10 @@ temp <- temp %>%
     TZ = TZ/10
   )
 
-#IGNORE
 #Import Sled Hobo (cynlinder) of just temp
-Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
-Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
+#Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
+#Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
+#Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
 Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
 SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set the values to aggregate around
 AvgTempKbyhr <- aggregate(Sled_Y1_hobotemp$Temp_K, by=list(SledT_hourly), mean) #calculate average hourly temp
@@ -247,8 +245,17 @@ T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_p
 T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
 #####################################################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#For our data
+temp$TZ_K <- temp$TZ+273.15 #create collumn with temp in K
+T_field <- function(t) {temp$TZ_K[t]}
+N_field <- function(t) {nitrate_hourly$no3[t]}
+
 #Model run (the differential equation solver)
-sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
+#sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
+
+# MODEL North Sea (region Zeeland)
+sol_NS_ZL <- ode(y = state_Johansson, t = times_NS, func = rates_NS, parms = params_Lo)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Setting up the forcing functions with field data for Sled line 2

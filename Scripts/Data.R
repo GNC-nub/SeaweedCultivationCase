@@ -216,7 +216,7 @@ library(readr)
 data <- read_tsv("AL557_tm - Nitrogen concentrations.tab", skip = 159)
 
 #DISSOLVED INORGANIC CARBON
-setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
+setwd("D:/R/Wageningen/Parasite Paradigms/Own model")
 library(ncdf4)
 
 # Open file
@@ -236,7 +236,7 @@ nc_close(nc2)
 
 # Inspect
 dim(TCO2)  
-head(TCO2)
+#head(TCO2)
 
 library(ggplot2)
 library(reshape2)
@@ -251,8 +251,8 @@ depth <- ncvar_get(nc2, "depth")
 time <- ncvar_get(nc2, "time")
 nc_close(nc2)
 
-depth_index <- 1  # surface
-time_index <- 1   # January
+#depth_index <- 1  # surface
+#time_index <- 1   # January
 
 tco2_slice <- TCO2[time_index, depth_index, , ]  # dims: lat x lon
 
@@ -273,6 +273,140 @@ plot(TCO2, type = "l",
      main = "Total dissolved inorganic C",
      xlab = "Time index", 
      ylab = "inorgnaic C (W/m²)")
+
+#Data CO2
+# Coordinates
+target_lat <- 51.683
+target_lon <- 3.0662
+
+# Find nearest indices
+lat_index <- which.min(abs(lat - target_lat))
+lon_index <- which.min(abs(lon - target_lon))
+
+lat[lat_index]
+lon[lon_index]
+
+#Specify target depths
+target_depths <- c(0, 5, 10)
+
+depth_indices <- sapply(target_depths, function(z) {
+  which.min(abs(depth - z))
+})
+
+depth_indices
+
+#Select the timeframe
+time_indices <- c(11, 12, 1, 2, 3, 4, 5)
+months <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May")
+
+# Create an empty output matrix
+tco2_mat <- matrix(NA, nrow = length(time_indices), ncol = length(depth_indices))
+
+for (i in seq_along(time_indices)) {
+  for (j in seq_along(depth_indices)) {
+    tco2_mat[i, j] <- TCO2[time_indices[i], depth_indices[j], lat_index, lon_index]
+  }
+}
+
+df <- data.frame(
+  Month = months,
+  Depth_0m  = tco2_mat[, 1],
+  Depth_5m  = tco2_mat[, 2],
+  Depth_10m = tco2_mat[, 3]
+)
+
+df
+#Only NA values because the dataset sees our coordinates as land. So we need to find the neares grid that does have data.
+
+#find nearest indices where the value is not NaN
+# Function to find the nearest non-NaN grid cell around the target
+find_nearest_ocean_cell <- function(target_lat, target_lon, lat, lon, TCO2, max_radius = 20) {
+  
+  # nearest grid indices
+  lat_idx0 <- which.min(abs(lat - target_lat))
+  lon_idx0 <- which.min(abs(lon - target_lon))
+  
+  for (r in 0:max_radius) {
+    
+    lat_candidates <- (lat_idx0 - r):(lat_idx0 + r)
+    lon_candidates <- (lon_idx0 - r):(lon_idx0 + r)
+    
+    # keep valid indices
+    lat_candidates <- lat_candidates[lat_candidates >= 1 & lat_candidates <= length(lat)]
+    lon_candidates <- lon_candidates[lon_candidates >= 1 & lon_candidates <= length(lon)]
+    
+    # search through candidates
+    for (i in lat_candidates) {
+      for (j in lon_candidates) {
+        
+        # Check if **any** depth/time layer contains valid ocean values
+        if (!all(is.na(TCO2[, , i, j]))) {
+          return(list(lat_index = i,
+                      lon_index = j,
+                      lat = lat[i],
+                      lon = lon[j],
+                      radius = r))
+        }
+      }
+    }
+  }
+  
+  return(NULL)
+}
+
+# RUN SEARCH
+nearest <- find_nearest_ocean_cell(
+  target_lat = 51.683,
+  target_lon = 3.0662,
+  lat = lat,
+  lon = lon,
+  TCO2 = TCO2
+)
+
+nearest 
+#nearest is 51.5 lat, 2.5 lon.
+#So now make the dataframe again
+# Coordinates
+target_lat <- 51.683
+target_lon <- 3.0662
+
+lat_index2 <- nearest$lat_index
+lon_index2 <- nearest$lon_index
+
+lat[lat_index2]
+lon[lon_index2]
+
+#Specify target depths
+target_depths <- c(0, 5, 10)
+
+depth_indices <- sapply(target_depths, function(z) {
+  which.min(abs(depth - z))
+})
+
+depth_indices
+
+#Select the timeframe
+time_indices <- c(11, 12, 1, 2, 3, 4, 5)
+months <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May")
+
+# Create an empty output matrix
+tco2_mat <- matrix(NA, nrow = length(time_indices), ncol = length(depth_indices))
+
+for (i in seq_along(time_indices)) {
+  for (j in seq_along(depth_indices)) {
+    tco2_mat[i, j] <- TCO2[time_indices[i], depth_indices[j], lat_index, lon_index]
+  }
+}
+
+TCO2_monthly <- data.frame(
+  Month = months,
+  Depth_0m  = tco2_mat[, 1],
+  Depth_5m  = tco2_mat[, 2],
+  Depth_10m = tco2_mat[, 3]
+)
+
+TCO2_monthly
+write.csv(TCO2_monthly, "DICNovDecJan_Depths0_5_10.csv", row.names = FALSE)
 
 #### Nitrate NOV 2019 MAY 2020 ####
 setwd("D:/R/Wageningen/Seagriculture/Case study")

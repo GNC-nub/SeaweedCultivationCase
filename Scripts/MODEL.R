@@ -183,7 +183,7 @@ nitrate_hourly <- nitrate %>%
 
 #IGNORE
 #Setting up the forcing functions with field data for Sled line 1
-#W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
+W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
 ###### N forcing set-up##############
 #WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water Q data
 #WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
@@ -206,7 +206,7 @@ nitrate_hourly <- nitrate %>%
 
 ###### Temp forcing set-Up #############
 temp <- read.csv("temperatue_20192020.csv")
-temp <- temp[7273:12384,]
+temp <- temp[7273:12385,]
 temp <- temp %>%
   mutate(
     # parse date
@@ -251,24 +251,55 @@ setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
 # Rates_NS over time 
 temp$TZ_K <- temp$TZ+273.15 #kelvin
-T_field <- function(t) {temp$TZ_K[t]}
-T_NS <- T_field(0:5111)
-N_field <- function(t) {nitrate_hourly$no3[t]}
+
+T_field <- function(t) {
+  idx <- floor(t) + 1L
+  if (idx < 1L) idx <- 1L
+  if (idx > length(temp$TZ_K)) idx <- length(temp$TZ_K)
+  temp$TZ_K[idx]
+}
+TZ_K <- temp$TZ_K[0:5113]
+
+N_field <- function(t) {
+  idx <- floor(t) + 1L
+  if (idx < 1L) idx <- 1L
+  if (idx > length(nitrate_hourly$no3)) idx <- length(nitrate_hourly$no3)
+  nitrate_hourly$no3[idx]
+}
 
 # CO_2 !!!! 
-install.packages("ncdf4")
 library(ncdf4)
 DIC <- nc_open("TCO2_NNGv2LDEO_climatology.nc") #Import DIC data
 CO_2 <- ncvar_get(DIC, "var")
 
 
 CO_2 <- mean(DIC.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-  #need units to match K_C (molDIC/L)
+#need units to match K_C (molDIC/L)
 CO_2 <- CO_2/1000000
 
+#general CO_2 value for dutch waters (in winter and spring)
+CO_2_winter <- 0.00219564 
+CO_2_spring <- 0.002174094
+CO_2 <- CO_2_winter
 
+I_field <- function(t) {
+  idx <- floor(t) + 1L
+  if (idx < 1L) idx <- 1L
+  if (idx > length(Irradiance$PAR_1m)) idx <- length(Irradiance$PAR_1m)
+  Irradiance$PAR_1m[idx]
+}
 
-I_field = function(t) {Irradiance$PAR_1m[t]}
+#inital biomass for conversions (cannot put in initial conditions)
+W <- 0.05 
+
+time_grid <- seq(0, length(temp$TZ_K) - 1)
+T_field <- approxfun(x = time_grid, y = temp$TZ_K, rule = 2)
+N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
+                     y = nitrate_hourly$no3,
+                     rule = 2)
+I_field <- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1),
+                     y = Irradiance$PAR_1m,
+                     rule = 2)
 
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
@@ -778,7 +809,7 @@ Nmax <- 73.1221719/1000000 #M
 T_dat <- 9 #C (conversion in Nuptake function to K)
 ###################################
 #Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_9 <- Nuptake(params_Lo, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
+sol_EspinozaChapman1983_N_9 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
 sol_EspinozaChapman1983_N_9 <- as.data.frame(sol_EspinozaChapman1983_N_9) #conversion to dataframe for later use
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #18C
@@ -790,7 +821,7 @@ Nmax <- 76.9543147/1000000 #M
 T_dat <- 18 #C (conversion in Nuptake function to K)
 #################################
 #Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_18 <- Nuptake(params_Lo, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
+sol_EspinozaChapman1983_N_18 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
 sol_EspinozaChapman1983_N_18 <- as.data.frame(sol_EspinozaChapman1983_N_18) #conversion to dataframe for later use
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Photosynthesis model calibration
@@ -799,13 +830,14 @@ T_dat <- 14 #C (maintained for entire experiment
 ###### I forcing set-up #####
 I_max <- 3233205 #micromol photons m-2 h-1
 ##############
-sol_Johansson2002 <- Photosynthesis(params_Lo, state_Johansson, w_V, w_EN, w_EC, w_O2, T_dat, I_max) #function from Photosynthesis_Calibration.R
+sol_Johansson2002 <- Photosynthesis(params_NS, state_Johansson, w_V, w_EN, w_EC, w_O2, T_dat, I_max) #function from Photosynthesis_Calibration.R
 sol_Johansson2002 <- as.data.frame(sol_Johansson2002) #conversion to dataframe for later use
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ###### Convert DeSolve solutions into data frame for broader plotting use ####
 ##### Year 1 #####
 #conversions to dataframes
+sol_NS <- as.data.frame(sol_NS_ZL)
 sol_Sled1 <- as.data.frame(sol_Sled1)
 sol_Sled2 <- as.data.frame(sol_Sled2)
 sol_Dredge1 <- as.data.frame(sol_Dredge1)
@@ -815,6 +847,7 @@ sol_RomePt1 <- as.data.frame(sol_RomePt1)
 sol_RomePt2 <- as.data.frame(sol_RomePt2)
 
 #addition of a date variable
+sol_NS$Date <- seq(as_datetime("2019-11-1 00:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
 sol_Sled1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-17 12:00:00"), by="hour")
 sol_Sled2$Date <- seq(as_datetime("2017-11-29 12:00:00"), as_datetime("2018-04-17 12:00:00"), by="hour")
 sol_Dredge1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-22 12:00:00"), by="hour")
@@ -824,6 +857,7 @@ sol_RomePt1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-
 sol_RomePt2$Date  <- seq(as_datetime("2017-12-6 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
 
 #conversion back to Celsius from Kelvin
+sol_NS$TZ_C <- TZ_K - 273.15
 sol_Sled1$Temp_C <- T_Sled1_Y1 - 273.15
 sol_Sled2$Temp_C <- T_Sled2_Y1 - 273.15
 sol_Dredge1$Temp_C <- T_Dredge1_Y1 - 273.15
@@ -833,6 +867,7 @@ sol_RomePt1$Temp_C <- T_RomePt1_Y1 - 273.15
 sol_RomePt2$Temp_C <- T_RomePt2_Y1 - 273.15
 
 #create source collumn to prepare for binding all these dataframes together
+sol_NS$source <- "North Sea, just of the coast of Zeeland"
 sol_Sled1$source <- "Point Judith Pond N 1"
 sol_Sled2$source <- "Point Judith Pond N 2"
 sol_Dredge1$source <- "Point Judith Pond S 1"
@@ -843,7 +878,7 @@ sol_RomePt2$source  <- "Narragansett Bay S 2"
 
 #combine all Y1 field data into one dataframe
 sol_all <- rbind(sol_Dredge1, sol_Dredge2, sol_RomePt1, sol_RomePt2, sol_Sled1, sol_Sled2, sol_Wickford1)
-
+sol_all <- rbind(sol_NS)
 ##### Year 2 #####
 #conversions to dataframes
 sol_Sled1_Y2 <- as.data.frame(sol_Sled1_Y2)
@@ -912,7 +947,7 @@ grid.arrange(plot_I_Y1, plot_I_Y2, ncol=2)
 
 #Figure 6
 #Temperature y1 plot
-plot_T_Y1 <- ggplot(data = sol_all, aes(Date, Temp_C, color = source)) + 
+plot_T_Y1 <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) + 
   geom_line() +
   scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) +
   ylim(-2, 25) +

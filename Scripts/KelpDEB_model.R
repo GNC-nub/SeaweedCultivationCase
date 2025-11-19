@@ -13,7 +13,6 @@ library(deSolve)
 rates_NS <- function(t, state, parameters) { 
   
   with(as.list(c(state, parameters)), { 
-    
     #set-up equations (to calculate values necessary for the differential equations)
     #Temperature correction:
     C_T <- exp((T_A/T_0)-(T_A/T_field(t))) * (1+exp((T_AL/T_0)-(T_AL/T_L))+exp((T_AH/T_H)-(T_AH/T_0))) * ((1+exp((T_AL/T_field(t))-(T_AL/T_L))+exp((T_AH/T_H)-(T_AH/T_field(t))))^-1)
@@ -54,6 +53,7 @@ rates_NS <- function(t, state, parameters) {
     r0 <- 0.01 # RL: I would not start the regression procedure with 0 (not sure why but it could have consequences in the procedure)
     #The loop to solve for r (specific growth rate)
     Output_loop <- SolveR_R(m_E, k_E, J_EM, y_EV, J_VM, r0)
+    
     
     #Unpacking SolveR_R output
     #RETURNS r, J_EC_loop (2), JEM_loop (2), JVM_loop (2), JER_loop (2), info

@@ -11,7 +11,7 @@
 ####################################################################################################################
 
 #Reminder to set working directory to location of data
-setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
+setwd("D:/R/Wageningen/SeaweedCultivationCase/Scripts")
 
 
 
@@ -203,6 +203,61 @@ nitrate_hourly <- nitrate %>%
 ###### NOAA Irradiance forcing set-up ####
 #NOAA_Irradiance_Sledy1 <-  NOAA_Irradiance$PAR[2438:3774] # subset based on as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-17 12:00:00")
 #I_field <- approxfun(x = seq(from = 0, to = 4008, by = 3), y = NOAA_Irradiance_Sledy1, method = "linear", rule = 2) #irradiance forcing function
+
+###CO2 forcing###
+TCO2_monthly <- read.csv("D:/R/Wageningen/Seagriculture/Case study/CO2/DICNovDecJan_Depths0_5_10.csv")
+# Monthly timestamps (start of each month)
+month_dates <- as.POSIXct(c(
+  "2019-11-01 00:00",
+  "2019-12-01 00:00",
+  "2020-01-01 00:00",
+  "2020-02-01 00:00",
+  "2020-03-01 00:00",
+  "2020-04-01 00:00",
+  "2020-05-01 00:00"
+), tz = "UTC")
+
+# Hourly sequence from 1 Nov 2019 to 31 May 2020 (inclusive)
+hourly_time <- seq(
+  from = as.POSIXct("2019-11-01 00:00", tz="UTC"),
+  to   = as.POSIXct("2020-05-31 23:00", tz="UTC"),
+  by   = "1 hour"
+)
+
+length(hourly_time)
+# should be 5112
+
+t_months_num  <- as.numeric(month_dates)
+t_hours_num   <- as.numeric(hourly_time)
+
+f_0m  <- approxfun(t_months_num, TCO2_monthly$Depth_0m,  method = "linear")
+f_5m  <- approxfun(t_months_num, TCO2_monthly$Depth_5m,  method = "linear")
+f_10m <- approxfun(t_months_num, TCO2_monthly$Depth_10m, method = "linear")
+
+TCO2_hourly <- data.frame(
+  Datetime   = hourly_time,
+  Depth_0m   = f_0m(t_hours_num),
+  Depth_5m   = f_5m(t_hours_num),
+  Depth_10m  = f_10m(t_hours_num)
+)
+
+library(ggplot2)
+
+ggplot(TCO2_hourly, aes(Datetime, Depth_0m)) +
+  geom_line() +
+  geom_point(data = TCO2_monthly,
+             aes(x = month_dates, y = Depth_0m),
+             color = "red", size = 3) +
+  theme_minimal() +
+  labs(title = "Hourly interpolated TCO2 at 0 m depth")
+
+
+
+#Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
+#Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
+#Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
+#Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
+#SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set the values to aggregate around
 
 ###### Temp forcing set-Up #############
 temp <- read.csv("temperatue_20192020.csv")

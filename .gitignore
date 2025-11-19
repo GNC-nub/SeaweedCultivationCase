@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.csv
+TCO2_NNGv2LDEO_climatology.nc

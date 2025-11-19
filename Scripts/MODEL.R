@@ -11,7 +11,9 @@
 ####################################################################################################################
 
 #Reminder to set working directory to location of data
-setwd("D:/R/Wageningen/Seagriculture")
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
+
+
 
 #Import libraries
 library(deSolve)
@@ -58,7 +60,7 @@ w_O2 <- 32 #g/mol
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ##### Parameters compiled #####
-params_Lo <- c(#maximum volume-specific assimilation rate of N before temperature correction
+params_NS <- c(#maximum volume-specific assimilation rate of N before temperature correction
   JENAM = 1.5e-4, #mol N / molV / h
   #half saturation constant of N uptake
   K_N = 2.5e-6, #molNO3 and NO2/L
@@ -127,33 +129,27 @@ state_Johansson <- c(m_EC = 0.3, #mol C/molM_V  #Reserve density of C reserve (i
 #######Time step to run the model on#######
 #(First number of time step, last number of time step, interval to step)
 times_NS <- seq(0, 5112, 1) #213 days stepped hourly
-times_Lo_Sled1 <- seq(0, 4008, 1) #167 days stepped hourly
-times_Lo_Sled2 <- seq(0, 3336, 1) #139 days stepped hourly
-times_Lo_Dredge1 <- seq(0, 4128, 1) #172 days stepped hourly
-times_Lo_Dredge2 <- seq(0, 3456, 1) #144 days stepped hourly
-times_Lo_Wickford1 <- seq(0, 3312, 1) #138 days stepped hourly
-times_Lo_RomePt1 <- seq(0, 4104, 1) #171 days stepped hourly
-times_Lo_RomePt2 <- seq(0, 3264, 1) #136 days stepped hourly
+#times_Lo_Sled1 <- seq(0, 4008, 1) #167 days stepped hourly
+#times_Lo_Sled2 <- seq(0, 3336, 1) #139 days stepped hourly
+#times_Lo_Dredge1 <- seq(0, 4128, 1) #172 days stepped hourly
+#times_Lo_Dredge2 <- seq(0, 3456, 1) #144 days stepped hourly
+#times_Lo_Wickford1 <- seq(0, 3312, 1) #138 days stepped hourly
+#times_Lo_RomePt1 <- seq(0, 4104, 1) #171 days stepped hourly
+#times_Lo_RomePt2 <- seq(0, 3264, 1) #136 days stepped hourly
 
-times_Y2_Sled1 <- seq(0, 3408, 1) #142 days stepped hourly
-times_Y2_Sled2 <- seq(0, 2064, 1) #86 days stepped hourly
-times_Y2_Dredge1 <- seq(0, 3408, 1) #142 days stepped hourly
-times_Y2_Dredge2 <- seq(0, 2064, 1) #86 days stepped hourly
-times_Y2_Wickford1 <- seq(0, 3720, 1) #155 days stepped hourly
-times_Y2_RomePt1 <- seq(0, 3720, 1) #155 days stepped hourly
-times_Y2_RomePt2 <- seq(0, 2208, 1) #92 days stepped hourly
+#times_Y2_Sled1 <- seq(0, 3408, 1) #142 days stepped hourly
+#times_Y2_Sled2 <- seq(0, 2064, 1) #86 days stepped hourly
+#times_Y2_Dredge1 <- seq(0, 3408, 1) #142 days stepped hourly
+#times_Y2_Dredge2 <- seq(0, 2064, 1) #86 days stepped hourly
+#times_Y2_Wickford1 <- seq(0, 3720, 1) #155 days stepped hourly
+#times_Y2_RomePt1 <- seq(0, 3720, 1) #155 days stepped hourly
+#times_Y2_RomePt2 <- seq(0, 2208, 1) #92 days stepped hourly
 
 ###### Set up NOAA data (for Irradiance forcing) ####
 #NOAA irradiance data set-up: NOAASurfaceIrradiance
-setwd("D:/R/Wageningen/Seagriculture/Case study")
-Irradiance <- read.csv("IrradianceNovMay/IR_result_PAR.csv", header = TRUE)
-
-#for (date_time in Irradiance) {
-  #if(block == 24) 
+Irradiance <- read.csv("IR_result_PAR.csv", header = TRUE)
 
 Irradiance$date_time[Irradiance$block == 24] <- paste0(Irradiance$date_time[Irradiance$block == 24], " 00:00:00")
-    
-Irradiance 
 
 Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in UTC (5 hours ahead)
 
@@ -171,8 +167,7 @@ Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in 
 #############
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #YEAR 1
-setwd("D:/R/Wageningen/Seagriculture/Case study")
-nitrate <- read.csv("NitrateNovMay/Nitrate_NovMay.csv")
+nitrate <- read.csv("Nitrate_NovMay.csv")
 nitrate %>%
   mutate()
 
@@ -188,22 +183,22 @@ nitrate_hourly <- nitrate %>%
 
 #IGNORE
 #Setting up the forcing functions with field data for Sled line 1
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
+#W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
 ###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water Q data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary for some computers running this code
-Sled_WSA <- filter(WSA2_Y1, Site == "Sled") #filter for Sled site
-daily <- seq(as.Date("2017-11-1"), as.Date("2018-04-17"), by="days") #days kelp in water for this site
-N <- Sled_WSA[c("Date","NitrateNitrite_uM")] #subset
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000
+#WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water Q data
+#WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
+#names(WSA2_Y1)[1] <- "Site" #only necessary for some computers running this code
+#Sled_WSA <- filter(WSA2_Y1, Site == "Sled") #filter for Sled site
+#daily <- seq(as.Date("2017-11-1"), as.Date("2018-04-17"), by="days") #days kelp in water for this site
+#N <- Sled_WSA[c("Date","NitrateNitrite_uM")] #subset
+#N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000
 #Converted to hourly by multiply by 24
-N_field <- approxfun(x = c(161*24, 139*24, 105*24, 0, 28*24, 84*24, 172*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing function
+#N_field <- approxfun(x = c(161*24, 139*24, 105*24, 0, 28*24, 84*24, 172*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing function
 ###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
+#Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
+#CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
 #need units to match K_C (molDIC/L)
-CO_2 <- CO_2/1000000
+#CO_2 <- CO_2/1000000
 
 ###### NOAA Irradiance forcing set-up ####
 #NOAA_Irradiance_Sledy1 <-  NOAA_Irradiance$PAR[2438:3774] # subset based on as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-17 12:00:00")
@@ -223,30 +218,63 @@ temp <- temp %>%
     TZ = TZ/10
   )
 
-#IGNORE
+
 #Import Sled Hobo (cynlinder) of just temp
-Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
-Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
-Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
-SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set the values to aggregate around
-AvgTempKbyhr <- aggregate(Sled_Y1_hobotemp$Temp_K, by=list(SledT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr_part1 <- AvgTempKbyhr$x[0:334] #subset
-Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #importing neighboring temp file to replace corrupted section
-Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
-Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #subset
-Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #set the values to aggregate around
-AvgTempKbyhr4FD <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr4FD <- AvgTempKbyhr4FD[4:4132, ] #subset
-fd <- AvgTempKbyhr4FD$x[335:859] #526 data points needed from dredge to replace a weird glitch in the sled temp data
-AvgTempKbyhr_part2 <- AvgTempKbyhr$x[860:4009] #later part of original temp file
-T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_part2), method = "linear", rule = 2) #the temp forcing function
-T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
+#Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
+#Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
+#Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
+#Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
+#SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set the values to aggregate around
+#AvgTempKbyhr <- aggregate(Sled_Y1_hobotemp$Temp_K, by=list(SledT_hourly), mean) #calculate average hourly temp
+#AvgTempKbyhr_part1 <- AvgTempKbyhr$x[0:334] #subset
+#Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #importing neighboring temp file to replace corrupted section
+#Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
+#Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #subset
+#Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
+#DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #set the values to aggregate around
+#AvgTempKbyhr4FD <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
+#AvgTempKbyhr4FD <- AvgTempKbyhr4FD[4:4132, ] #subset
+#fd <- AvgTempKbyhr4FD$x[335:859] #526 data points needed from dredge to replace a weird glitch in the sled temp data
+#AvgTempKbyhr_part2 <- AvgTempKbyhr$x[860:4009] #later part of original temp file
+#T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_part2), method = "linear", rule = 2) #the temp forcing function
+#T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
 #####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #Model run (the differential equation solver)
-sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
+#sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
+
+
+# Rates_NS over time 
+temp$TZ_K <- temp$TZ+273.15 #kelvin
+T_field <- function(t) {temp$TZ_K[t]}
+T_NS <- T_field(0:5111)
+N_field <- function(t) {nitrate_hourly$no3[t]}
+
+# CO_2 !!!! 
+install.packages("ncdf4")
+library(ncdf4)
+DIC <- nc_open("TCO2_NNGv2LDEO_climatology.nc") #Import DIC data
+CO_2 <- ncvar_get(DIC, "var")
+
+
+CO_2 <- mean(DIC.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
+  #need units to match K_C (molDIC/L)
+CO_2 <- CO_2/1000000
+
+
+
+I_field = function(t) {Irradiance$PAR_1m[t]}
+
+# MODEL North Sea (region Zeeland)
+sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
+
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Setting up the forcing functions with field data for Sled line 2

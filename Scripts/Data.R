@@ -216,7 +216,7 @@ library(readr)
 data <- read_tsv("AL557_tm - Nitrogen concentrations.tab", skip = 159)
 
 #DISSOLVED INORGANIC CARBON
-setwd("D:/R/Wageningen/Parasite Paradigms/Own model")
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 library(ncdf4)
 
 # Open file

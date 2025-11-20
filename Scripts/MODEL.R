@@ -128,7 +128,7 @@ state_Johansson <- c(m_EC = 0.3, #mol C/molM_V  #Reserve density of C reserve (i
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #######Time step to run the model on#######
 #(First number of time step, last number of time step, interval to step)
-times_NS <- seq(0, 5112, 1) #213 days stepped hourly
+times_NS <- seq(1, 5112, 1) #213 days stepped hourly
 #times_Lo_Sled1 <- seq(0, 4008, 1) #167 days stepped hourly
 #times_Lo_Sled2 <- seq(0, 3336, 1) #139 days stepped hourly
 #times_Lo_Dredge1 <- seq(0, 4128, 1) #172 days stepped hourly
@@ -181,6 +181,16 @@ nitrate_hourly <- nitrate %>%
   dplyr::select(datetime, no3) %>%
   dplyr::arrange(datetime)
 
+dupe_rows <- nitrate_hourly[2857:2880, ]
+
+# insert them after 2880
+nitrate_hourly <- rbind(
+  nitrate_hourly[1:2880, ],      # everything up to row 2880
+  dupe_rows,         # duplicated rows for Feb 29
+  nitrate_hourly[2881:nrow(nitrate_hourly), ]  # the rest of the original data
+)
+
+
 #IGNORE
 #Setting up the forcing functions with field data for Sled line 1
 W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
@@ -217,7 +227,10 @@ temp <- temp %>%
     date_time = dates + hours(hour),
     TZ = TZ/10
   )
-
+temp$TZ_K <- temp$TZ+273.15 #kelvin
+temp <- temp[-nrow(temp), ]
+#T_field <- make_function(temp$TZ_K)
+TZ_K <- temp$TZ_K
 
 #Import Sled Hobo (cynlinder) of just temp
 #Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
@@ -248,46 +261,93 @@ temp <- temp %>%
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
+###CO2 forcing###
+TCO2_monthly <- read.csv("DICNovDecJan_Depths0_5_10.csv")
+# Monthly timestamps (start of each month)
+month_dates <- as.POSIXct(c(
+  "2019-11-01 00:00",
+  "2019-12-01 00:00",
+  "2020-01-01 00:00",
+  "2020-02-01 00:00",
+  "2020-03-01 00:00",
+  "2020-04-01 00:00",
+  "2020-05-01 00:00"
+), tz = "UTC")
 
+# Hourly sequence from 1 Nov 2019 to 31 May 2020 (inclusive)
+hourly_time <- seq(
+  from = as.POSIXct("2019-11-01 00:00", tz="UTC"),
+  to   = as.POSIXct("2020-05-31 23:00", tz="UTC"),
+  by   = "1 hour"
+)
+
+length(hourly_time)
+# should be 5112
+
+t_months_num  <- as.numeric(month_dates)
+t_hours_num   <- as.numeric(hourly_time)
+
+
+f_0m  <- approxfun(t_months_num, TCO2_monthly$Depth_0m,  method = "linear")
+f_5m  <- approxfun(t_months_num, TCO2_monthly$Depth_5m,  method = "linear")
+f_10m <- approxfun(t_months_num, TCO2_monthly$Depth_10m, method = "linear")
+
+
+TCO2_hourly <- data.frame(
+  Datetime   = hourly_time,
+  Depth_0m   = f_0m(t_hours_num),
+  Depth_5m   = f_5m(t_hours_num),
+  Depth_10m  = f_10m(t_hours_num)
+)
+
+
+plot_TCO2_depth <- function(depth_str) {
+  # build column name, e.g. "Depth_0m"
+  col_name <- paste0("Depth_", depth_str)
+  
+  ggplot(TCO2_hourly, aes(x = Datetime, y = .data[[col_name]])) +
+    geom_line() +
+    geom_point(
+      data = TCO2_monthly,
+      aes(x = month_dates, y = .data[[col_name]]),
+      color = "red",
+      size  = 3
+    ) +
+    theme_minimal() +
+    labs(title = paste("Hourly interpolated TCO2 at", depth_str, "depth"))
+}
+
+plot_TCO2_depth("0m")
+plot_TCO2_depth("5m")
+plot_TCO2_depth("10m")
+
+# make_function <- function(name) {
+#  function(t) {
+#    idx <- floor(t) + 1L
+#    if (idx < 1L) idx <- 1L
+#    if (idx > length(name)) idx <- length(name)
+#    name[idx]
+#  }
+#}
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Rates_NS over time 
-temp$TZ_K <- temp$TZ+273.15 #kelvin
-
-T_field <- function(t) {
-  idx <- floor(t) + 1L
-  if (idx < 1L) idx <- 1L
-  if (idx > length(temp$TZ_K)) idx <- length(temp$TZ_K)
-  temp$TZ_K[idx]
-}
-TZ_K <- temp$TZ_K[0:5113]
-
-N_field <- function(t) {
-  idx <- floor(t) + 1L
-  if (idx < 1L) idx <- 1L
-  if (idx > length(nitrate_hourly$no3)) idx <- length(nitrate_hourly$no3)
-  nitrate_hourly$no3[idx]
-}
-
-# CO_2 !!!! 
-library(ncdf4)
-DIC <- nc_open("TCO2_NNGv2LDEO_climatology.nc") #Import DIC data
-CO_2 <- ncvar_get(DIC, "var")
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-CO_2 <- mean(DIC.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-#need units to match K_C (molDIC/L)
-CO_2 <- CO_2/1000000
 
-#general CO_2 value for dutch waters (in winter and spring)
-CO_2_winter <- 0.00219564 
-CO_2_spring <- 0.002174094
-CO_2 <- CO_2_winter
+#Nitrate 
+#N_field <- make_function(nitrate_hourly$no3)
+#choose CO2 depth: 0, 5, or 10m 
+#CO_2 <- make_function(TCO2_hourly$Depth_0m)
+#choose Depth of irradiance: 0, 1, 4.5, 7m 
+#I_field <- make_function(Irradiance$PAR_1m)
 
-I_field <- function(t) {
-  idx <- floor(t) + 1L
-  if (idx < 1L) idx <- 1L
-  if (idx > length(Irradiance$PAR_1m)) idx <- length(Irradiance$PAR_1m)
-  Irradiance$PAR_1m[idx]
-}
+#general CO_2 value for dutch waters (in winter and spring), not used! 
+#CO_2_winter <- 0.00219564 
+#CO_2_spring <- 0.002174094
+#CO_2 <- CO_2_winter
 
 #inital biomass for conversions (cannot put in initial conditions)
 W <- 0.05 
@@ -300,13 +360,37 @@ N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
 I_field <- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1),
                      y = Irradiance$PAR_1m,
                      rule = 2)
+CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
+                     y = TCO2_hourly$Depth_0m,
+                     rule = 2)
+
+
+length(Irradiance$PAR_1m)
+length(TCO2_hourly$Depth_0m)
+length(nitrate_hourly$no3)
+length(temp$TZ_K)
+length(TZ_K)
+
+source("KelpDEB_model.R")
 
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
 
+sol_NS_df <- as.data.frame(sol_NS_ZL)
+sol_NS_df$Date <- seq(as_datetime("2019-11-1 01:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
 
+#conversion back to Celsius from Kelvin
+sol_NS_df$TZ_C <- TZ_K - 273.15
 
+#create source collumn to prepare for binding all these dataframes together
+sol_NS_df$source <- "North Sea, just of the coast of Zeeland"
 
+sol_NS_df$M_V
+
+ggplot(sol_NS_df, aes(x = time, y = M_V)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Mass Kelp over time")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Setting up the forcing functions with field data for Sled line 2
 W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)

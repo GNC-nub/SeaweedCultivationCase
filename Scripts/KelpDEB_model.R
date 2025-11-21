@@ -13,7 +13,6 @@ library(deSolve)
 rates_NS <- function(t, state, parameters) { 
   
   with(as.list(c(state, parameters)), { 
-    
     #set-up equations (to calculate values necessary for the differential equations)
     #Temperature correction:
     C_T <- exp((T_A/T_0)-(T_A/T_field(t))) * (1+exp((T_AL/T_0)-(T_AL/T_L))+exp((T_AH/T_H)-(T_AH/T_0))) * ((1+exp((T_AL/T_field(t))-(T_AL/T_L))+exp((T_AH/T_H)-(T_AH/T_field(t))))^-1)
@@ -25,7 +24,7 @@ rates_NS <- function(t, state, parameters) {
     
     J_CO2_M <- JCO2M * C_T #Temperature correction max uptake rate of CO2 (photon capture not influenced by temp) J_CO2_M units: molC/molM_V/d
     #Specific CO2 uptake flux
-    J_CO2 <- J_CO2_M*(CO_2/(CO_2+K_C)) #J_CO2 units: molC/molM_V/h
+    J_CO2 <- J_CO2_M*(CO_2(t)/(CO_2(t)+K_C)) #J_CO2 units: molC/molM_V/h
     
     #Specific relaxation rate
     J_I <- (rho_PSU * I_field(t) * b_I * alpha)/(1+I_field(t) * b_I * alpha/(k_I * C_T)) #Unit: molγ molM_V–1 h–1
@@ -54,6 +53,7 @@ rates_NS <- function(t, state, parameters) {
     r0 <- 0.01 # RL: I would not start the regression procedure with 0 (not sure why but it could have consequences in the procedure)
     #The loop to solve for r (specific growth rate)
     Output_loop <- SolveR_R(m_E, k_E, J_EM, y_EV, J_VM, r0)
+    
     
     #Unpacking SolveR_R output
     #RETURNS r, J_EC_loop (2), JEM_loop (2), JVM_loop (2), JER_loop (2), info
@@ -100,7 +100,7 @@ rates_NS <- function(t, state, parameters) {
     
     
     #output
-    return(list(c(dm_ECdt, dm_ENdt, dM_Vdt), r=r, W=W, C_T=C_T, I=I, N=N, J_CO2=J_CO2, J_I=J_I, J_EC_A=J_EC_A, J_EN_A=J_EN_A, J_EC_C=J_EC_C, J_EN_C=J_EN_C, J_EN_M=J_EN_M, J_EC_M=J_EC_M, J_EN_G=J_EN_G, J_EC_G=J_EC_G, J_G=J_G, J_VM=J_VM, J_EC_R=J_EC_R, J_EN_R=J_EN_R, CO_2=CO_2, L_allometric=L_allometric, J_O=J_O, info=info))
+    return(list(c(dm_ECdt, dm_ENdt, dM_Vdt), r=r, W=W, C_T=C_T, I=I, N=N, J_CO2=J_CO2, J_I=J_I, J_EC_A=J_EC_A, J_EN_A=J_EN_A, J_EC_C=J_EC_C, J_EN_C=J_EN_C, J_EN_M=J_EN_M, J_EC_M=J_EC_M, J_EN_G=J_EN_G, J_EC_G=J_EC_G, J_G=J_G, J_VM=J_VM, J_EC_R=J_EC_R, J_EN_R=J_EN_R, L_allometric=L_allometric, J_O=J_O, info=info))
   })
 }
 

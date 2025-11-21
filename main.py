@@ -45,3 +45,5 @@ print("\nPreview:")
 print(df_201.head(5))
 mean_201 = pd.to_numeric(df_201['TZ'], errors='coerce').mean()
 print(f'The mean TZ is {float(mean_201)}')
+
+

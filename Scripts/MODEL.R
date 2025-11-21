@@ -1,19 +1,14 @@
 ####################################################################################################################
 #Run file of Sugar Kelp model from Venolia et al (in press)
 #Site names here begin with names other than those used in the manuscript
-#Sled = Pt Judith Pond N
-#Dredge = Pt Judith Pond S
-#Wickford = Narragansett Bay N
-#Rome Point = Narragansett Bay S
+#NS_ZL = North Sea, near Zeeland 
+
 #File created by Celeste Venolia in March 2018-December 2019
-#Note: Figure 1 created in PowerPoint, Figure 2 created in QGIS, and Figure 4 created in MATLAB
-#Hence those figures are not mentioned here
+#Edited by Luka ... and Nubia Middelkoop during nov-dec 2025 
 ####################################################################################################################
 
 #Reminder to set working directory to location of data
 setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
-
-
 
 #Import libraries
 library(deSolve)
@@ -113,13 +108,13 @@ params_NS <- c(#maximum volume-specific assimilation rate of N before temperatur
 ####### State Initial conditions ############
 #Initial conditions of state variables
 #these values are not coming from any field data or literature information, estimated
-state_Lo <- c(m_EC = 0.002, #0.1, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
-              m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
-              M_V = 0.05/(w_V+0.01*w_EN+0.002*w_EC)) #molM_V #initial mass of structure
+#state_Lo <- c(m_EC = 0.002, #0.1, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
+#              m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
+#              M_V = 0.05/(w_V+0.01*w_EN+0.002*w_EC)) #molM_V #initial mass of structure
 
-state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
-                m_EN = 0.09, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
-                M_V = 0.05/(w_V+0.09*w_EN+0.01*w_EC)) #molM_V #initial mass of structure
+#state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
+#                m_EN = 0.09, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
+#                M_V = 0.05/(w_V+0.09*w_EN+0.01*w_EC)) #molM_V #initial mass of structure
 
 state_Johansson <- c(m_EC = 0.3, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
                      m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
@@ -166,10 +161,8 @@ Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in 
 
 #############
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#YEAR 1
-nitrate <- read.csv("Nitrate_NovMay.csv")
-nitrate %>%
-  mutate()
+
+nitrate <- read.csv("Nitrate_NovMay.csv") 
 
 nitrate_hourly <- nitrate %>%
   # create 24 rows per date (0–23 hours)
@@ -189,6 +182,9 @@ nitrate_hourly <- rbind(
   dupe_rows,         # duplicated rows for Feb 29
   nitrate_hourly[2881:nrow(nitrate_hourly), ]  # the rest of the original data
 )
+
+# N unit is now in: millimol/m^3, we convert it to mol/L 
+nitrate_hourly$no3 <- nitrate_hourly$no3/1000000
 
 
 #IGNORE
@@ -263,6 +259,10 @@ setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
 ###CO2 forcing###
 TCO2_monthly <- read.csv("DICNovDecJan_Depths0_5_10.csv")
+density_seawater <- 1.026 #kilo/liter
+TCO2_monthly$Depth_0m <- TCO2_monthly$Depth_0m/1000000 * density_seawater
+TCO2_monthly$Depth_5m <- TCO2_monthly$Depth_5m/1000000 * density_seawater
+TCO2_monthly$Depth_10m <- TCO2_monthly$Depth_10m/1000000 * density_seawater
 # Monthly timestamps (start of each month)
 month_dates <- as.POSIXct(c(
   "2019-11-01 00:00",
@@ -301,25 +301,22 @@ TCO2_hourly <- data.frame(
 )
 
 
-plot_TCO2_depth <- function(depth_str) {
-  # build column name, e.g. "Depth_0m"
-  col_name <- paste0("Depth_", depth_str)
+plotplot_TCO2 <- ggplot() + 
+  geom_line(data = TCO2_hourly, aes(Datetime, Depth_0m), color = "gray0") 
+  #theme_bw() +
+  #geom_point(
+    #data = TCO2_monthly,
+    #aes(x = month_dates, y = Depth_0m),
+    #color = "red",
+    #size  = 3
+  #) +
+  #theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
+  #theme(legend.position="none") + 
+  #theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+  #labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
+  #ggtitle("a)")
   
-  ggplot(TCO2_hourly, aes(x = Datetime, y = .data[[col_name]])) +
-    geom_line() +
-    geom_point(
-      data = TCO2_monthly,
-      aes(x = month_dates, y = .data[[col_name]]),
-      color = "red",
-      size  = 3
-    ) +
-    theme_minimal() +
-    labs(title = paste("Hourly interpolated TCO2 at", depth_str, "depth"))
-}
 
-plot_TCO2_depth("0m")
-plot_TCO2_depth("5m")
-plot_TCO2_depth("10m")
 
 # make_function <- function(name) {
 #  function(t) {
@@ -364,6 +361,12 @@ CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
                      y = TCO2_hourly$Depth_0m,
                      rule = 2)
 
+N <- nitrate_hourly$no3
+I <- Irradiance$PAR_1m
+
+
+
+
 
 length(Irradiance$PAR_1m)
 length(TCO2_hourly$Depth_0m)
@@ -375,510 +378,6 @@ source("KelpDEB_model.R")
 
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
-
-sol_NS_df <- as.data.frame(sol_NS_ZL)
-sol_NS_df$Date <- seq(as_datetime("2019-11-1 01:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
-
-#conversion back to Celsius from Kelvin
-sol_NS_df$TZ_C <- TZ_K - 273.15
-
-#create source collumn to prepare for binding all these dataframes together
-sol_NS_df$source <- "North Sea, just of the coast of Zeeland"
-
-sol_NS_df$M_V
-
-ggplot(sol_NS_df, aes(x = time, y = M_V)) +
-  geom_line() +
-  theme_minimal() +
-  labs(title = "Mass Kelp over time")
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Sled line 2
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water Q data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary on some computers for the code to run
-Sled_WSA <- filter(WSA2_Y1, Site == "Sled") #filter for site
-daily <- seq(as.Date("2017-11-29"), as.Date("2018-04-17"), by="days") #aquaculture season for this site
-N <- Sled_WSA[c("Date","NitrateNitrite_uM")] #create a dataframe with just the relevant collums
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/L
-#multiplying by 24 to set as hourly
-N_field <- approxfun(x = c(133*24, 111*24, 77*24, -28*24, 0, 56*24, 144*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-#need units to match K_C (molDIC/L)
-CO_2 <- CO_2/1000000
-
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Sledy1_L2 <-  NOAA_Irradiance$PAR[2662:3774] #subset by seq(as_datetime("2017-11-29 12:00:00"), as_datetime("2018-04-17 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3336, by = 3), y = NOAA_Irradiance_Sledy1_L2, method = "linear", rule = 2) #irradiance forcing function
-
-###### Temp forcing set-Up #############
-Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
-Sled_Y1_hobotemp <- Sled_Y1_hobotemp[6:16051,] #subset
-Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
-SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set values to aggregate around
-AvgTempKbyhr <- aggregate(Sled_Y1_hobotemp$Temp_K, by=list(SledT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[677:4011,] #subset
-Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import nearby site temperature data to fix an error in the Sled data
-Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
-Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #subset
-Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #set values to aggregate around
-AvgTempKbyhr4FD <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr4FD <- AvgTempKbyhr4FD[4:4132, ] #subset
-fd <- AvgTempKbyhr4FD$x[858:859] #526 data points needed from dredge to replace a weird glitch in the sled temp data
-T_field <- approxfun(x = c(0:3336), y = c(fd, AvgTempKbyhr$x), method = "linear", rule = 2) #the temp forcing function
-T_Sled2_Y1 <- T_field(0:3336) #for later ease in plotting the forcing
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Sled2 <- ode(y = state_Lo, t = times_Lo_Sled2, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Dredge line 1
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary on some computers to make the code run
-Dredge_WSA <- filter(WSA2_Y1, Site == "Dredge") #filter by site
-daily <- seq(as.Date("2017-11-1"), as.Date("2018-04-22"), by="days") #date range relevant for this site
-N <- Dredge_WSA[c("Date","NitrateNitrite_uM")] #new dataframe with the relevant collumns
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/L
-#multipling by 24 to take from daily to hourly
-N_field <- approxfun(x = c(139*24, 161*24, 84*24, 0, 105*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing 
-
-###### DIC forcing set-up ###########
-DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-#need units to match K_C (molDIC/L)
-CO_2 <- CO_2/1000000
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Dredgey1 <-  NOAA_Irradiance$PAR[2438:3814] #subset by 11/1/17 to 2018-04-22 12:00:00
-I_field <- approxfun(x = seq(from = 0, to = 4128, by = 3), y = NOAA_Irradiance_Dredgey1, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
-Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #subset
-Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #set values to aggregate around
-AvgTempKbyhr <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[4:4132, ] #subset
-T_field <- approxfun(x = c(0:4128), y = AvgTempKbyhr$x, method = "linear", rule = 2) #the temp forcing function
-T_Dredge1_Y1 <- T_field(0:4128) #for ease in later plotting of the forcing
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Dredge1 <- ode(y = state_Lo, t = times_Lo_Dredge1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Dredge line 2
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary for some computers to run the following code
-Dredge_WSA <- filter(WSA2_Y1, Site == "Dredge") #Filter by site
-daily <- seq(as.Date("2017-11-29"), as.Date("2018-04-22"), by="days") #day range relevant to this site
-N <- Dredge_WSA[c("Date","NitrateNitrite_uM")] #create new dataframe with just the relevant collumns
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to convert from daily to hourly
-N_field <- approxfun(x = c(111*24, 133*24, 56*24, -28*24, 77*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-#need units to match K_C (molDIC/L)
-CO_2 <- CO_2/1000000
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Dredgey1_L2 <-  NOAA_Irradiance$PAR[2662:3814] #subset by seq(as_datetime("2017-11-29 12:00:00"), as_datetime("2018-04-22 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3456, by = 3), y = NOAA_Irradiance_Dredgey1_L2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
-Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #cut 2 points in beginning, logger not yet in water
-Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #determine dates to aggregate around
-AvgTempKbyhr <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr_sub <- AvgTempKbyhr[676:4132,] #subset
-T_field <- approxfun(x = c(0:3456), y = c(AvgTempKbyhr_sub$x), method = "linear", rule = 2) #the temp forcing function
-T_Dredge2_Y1 <- T_field(0:3456) #for ease of later plotting the temperature forcing
-################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Dredge2 <- ode(y = state_Lo, t = times_Lo_Dredge2, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Wickford line 1
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary to run this code on some computers
-Wickford_WSA <- filter(WSA2_Y1, Site == "Wickford") #filter by site
-daily <- seq(as.Date("2017-12-4"), as.Date("2018-04-21"), by="days") #daily range relevant for this site
-N <- Wickford_WSA[c("Date","NitrateNitrite_uM")] #new data frame with the relevant collumns
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to take the values from their daily to hourly positions
-N_field <- approxfun(x = c(115*24, 0, 81*24, 59*24, 38*24, 138*24), y = c(N$NitrateNitrite_uM[1], N$NitrateNitrite_uM[3:7]), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import literature DIC data
-names(Segarra2002Carbon)[1] <- "Date" #only necessary from some computers to run this code
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #convert date collumn
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Wickfordy1 <-  NOAA_Irradiance$PAR[2702:3806] #subset by seq(as_datetime("2017-12-4 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3312, by = 3), y = NOAA_Irradiance_Wickfordy1, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Wickford_Y1_hobo <- read.csv("Wickford_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Wickford Hobo data
-Wickford_Y1_hobo$DateTime <- mdy_hms(Wickford_Y1_hobo$DateTime) #convert time field
-Wickford_Y1_hobo <- Wickford_Y1_hobo[607:13839,] #subset based on 2017-12-04 15:30:00 to 2018-04-21 11:30:00 
-Wickford_Y1_hobo$Temp_K <- Wickford_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-WickfordT_hourly <- ceiling_date(Wickford_Y1_hobo$DateTime, unit = "hour") #determine values to aggregate around
-AvgTempKbyhr <- aggregate(Wickford_Y1_hobo$Temp_K, by=list(WickfordT_hourly), mean) #calculate average hourly temp
-fd <- AvgTempKbyhr[1:4,] #a few replacement data points at the front of the forcing
-T_field <- approxfun(x = c(0:3312), y = c(fd$x, AvgTempKbyhr$x), method = "linear", rule = 2) #the temp forcing function
-T_Wickford1_Y1 <- T_field(0:3312) #For ease of plotting the temp forcing
-################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Wickford1 <- ode(y = state_Lo, t = times_Lo_Wickford1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Rome Point line 1
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary for some computers to run this code
-RomePt_WSA <- filter(WSA2_Y1, Site == "Rome Point") #filter by site
-daily <- seq(as.Date("2017-11-1"), as.Date("2018-04-21"), by="days") #days kelp in the water at this site
-N <- RomePt_WSA[c("Date","NitrateNitrite_uM")] #new dataframe with relevant collumns
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/Lmean
-#multiplied by 24 to take from daily to hourly
-N_field <- approxfun(x = c(114*24, 148*24, 0, 71*24, 92*24, 171*24), y = c(N$NitrateNitrite_uM[1:3], N$NitrateNitrite_uM[5:7]), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import literature DIC data
-names(Segarra2002Carbon)[1] <- "Date" #only necessary for some computers to write this code
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #convert date collumn for easier use
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_RomePty1 <-  NOAA_Irradiance$PAR[2438:3806] #subset by seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 4104, by = 3), y = NOAA_Irradiance_RomePty1, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-RomePoint_Y1_hobotemp <- read.csv("RomePoint_Y1_hobotemp.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-RomePoint_Y1_hobotemp$DateTime <- mdy_hms(RomePoint_Y1_hobotemp$DateTime) #convert time field
-RomePoint_Y1_hobotemp <- RomePoint_Y1_hobotemp[6:16425,] #subset based on 2017-11-01 13:15:00 start and 2018-04-21 14:00:00 end
-RomePoint_Y1_hobotemp$Temp_K <- RomePoint_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
-RomePointT_hourly <- ceiling_date(RomePoint_Y1_hobotemp$DateTime, unit = "hour") #determine dates to aggregate around
-AvgTempKbyhr <- aggregate(RomePoint_Y1_hobotemp$Temp_K, by=list(RomePointT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[1:4103,] #subset
-fd <- AvgTempKbyhr[1:2,] #two points of simulated data
-T_field <- approxfun(x = c(0:4104), y = c(fd$x, AvgTempKbyhr$x), method = "linear", rule = 2) #the temp forcing function
-T_RomePt1_Y1 <- T_field(0:4104) #for ease in plotting the temperature forcing
-################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_RomePt1 <- ode(y = state_Lo, t = times_Lo_RomePt1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Rome Point line 2
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-names(WSA2_Y1)[1] <- "Site" #only necessary for some computers to run this code
-RomePt_WSA <- filter(WSA2_Y1, Site == "Rome Point") #filter by site
-daily <- seq(as.Date("2017-12-6"), as.Date("2018-04-21"), by="days") #days kelp in the water at this site
-N <- RomePt_WSA[c("Date","NitrateNitrite_uM")] #new dataframe with relevant collumns
-N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to convert from daily positioning to hourly positioning
-N_field <- approxfun(x = c(79*24, 113*24, -25*24, 57*24, 136*24), y = c(N$NitrateNitrite_uM[1:2], N$NitrateNitrite_uM[5:7]), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import literature DIC data
-names(Segarra2002Carbon)[1] <- "Date" #only necessary for this code to run in some computers
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #convert date collumn
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_RomePty1_L2 <-  NOAA_Irradiance$PAR[2718:3806] #subset by seq(as_datetime("2017-12-6 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3264, by = 3), y = NOAA_Irradiance_RomePty1_L2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-RomePoint_Y1_hobotemp <- read.csv("RomePoint_Y1_hobotemp.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-RomePoint_Y1_hobotemp$DateTime <- mdy_hms(RomePoint_Y1_hobotemp$DateTime) #convert time field
-RomePoint_Y1_hobotemp <- RomePoint_Y1_hobotemp[3313:16425,] #subset based on 2017-12-06 00:00:00 - 2018-04-21 14:00:00
-RomePoint_Y1_hobotemp$Temp_K <- RomePoint_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
-RomePointT_hourly <- ceiling_date(RomePoint_Y1_hobotemp$DateTime, unit = "hour") #detertime times to aggregate around
-AvgTempKbyhr <- aggregate(RomePoint_Y1_hobotemp$Temp_K, by=list(RomePointT_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[13:3277, ] #subset
-T_field <- approxfun(x = c(0:3264), y = c(AvgTempKbyhr$x), method = "linear", rule = 2) #the temp forcing function
-T_RomePt2_Y1 <- T_field(0:3264) #for ease in later plotting
-################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_RomePt2 <- ode(y = state_Lo, t = times_Lo_RomePt2, func = rates_Lo, parms = params_Lo)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#YEAR 2 Kelp data
-#Setting up the forcing functions with field data for Sled line 1 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA_Y2 <- read.csv("WaterSamplesY2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA_Y2$Date <- mdy(WSA_Y2$Date) #convert dates
-names(WSA_Y2)[1] <- "Site" #only necessary to run this code on some computers
-Sled_WSA2 <- filter(WSA_Y2, Site == "Moonstone Sled") #filter by site
-daily <- seq(as.Date("2018-12-12"), as.Date("2019-05-03"), by="days") #date range kelp in water
-Sled_WSA2$NO3NO2_µM <- Sled_WSA2$NO3NO2_µM/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to go from daily to hourly
-N_field <- approxfun(x = c(1*24, 57*24, 93*24, 124*24, 142*24, 163*24), y = c(Sled_WSA2$NO3NO2_µM), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-CO_2 <- CO_2/1000000 #need units to match K_C (molDIC/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Sledy2 <-  NOAA_Irradiance$PAR[5686:6822] #subset by seq(as_datetime("2018-12-12 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3408, by = 3), y = NOAA_Irradiance_Sledy2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Sled_Y2_Hobo <- read.csv("Sled_Y2_HoboLightTemp.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Sled_Y2_Hobo$DateTime <- mdy_hms(Sled_Y2_Hobo$DateTime) #convert date time field
-Sled_Y2_Hobo$Temp_K <- Sled_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-SledY2T_hourly <- ceiling_date(Sled_Y2_Hobo$DateTime, unit = "hour") #determine times to aggregate around
-AvgTempKbyhr <- aggregate(Sled_Y2_Hobo$Temp_K, by=list(SledY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[2:3385,] #subset
-fd <- rep(285, 25) #small section of replacement
-T_field <- approxfun(x = c(0:3408), y = c(AvgTempKbyhr$x, fd), method = "linear", rule = 2) #the temp forcing function
-T_Sled1_Y2 <- T_field(0:3408) #for ease in plotting the temperature forcing
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Sled1_Y2 <- ode(y = state_LoY2, t = times_Y2_Sled1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Sled line 2 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA_Y2 <- read.csv("WaterSamplesY2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA_Y2$Date <- mdy(WSA_Y2$Date) #convert dates
-names(WSA_Y2)[1] <- "Site" #only necessary for some computers to run this code
-Sled_WSA2 <- filter(WSA_Y2, Site == "Moonstone Sled") #filter by site
-daily <- seq(as.Date("2019-02-06"), as.Date("2019-05-03"), by="days") #days the kelp was in the water
-Sled_WSA2$NO3NO2_µM <- Sled_WSA2$NO3NO2_µM/1000000 #convert from micromoles/L to moles/L
-Sled_WSA2 <- Sled_WSA2[2:6,] #remove the point before the relevant time range
-N_field <- approxfun(x = c(1*24, 37*24, 68*24, 86*24, 107*24), y = c(Sled_WSA2$NO3NO2_µM), method = "linear", rule = 2) #N forcing function
-
-###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-CO_2 <- CO_2/1000000 #need units to match K_C (molDIC/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Sledy2_L2 <-  NOAA_Irradiance$PAR[6134:6822] #subset by seq(as_datetime("2019-02-06 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 2064, by = 3), y = NOAA_Irradiance_Sledy2_L2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Sled_Y2_Hobo <- read.csv("Sled_Y2_HoboLightTemp.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Sled_Y2_Hobo$DateTime <- mdy_hms(Sled_Y2_Hobo$DateTime) #convert date time field
-Sled_Y2_Hobo$Temp_K <- Sled_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-SledY2T_hourly <- ceiling_date(Sled_Y2_Hobo$DateTime, unit = "hour") #determine times to aggregate around
-AvgTempKbyhr <- aggregate(Sled_Y2_Hobo$Temp_K, by=list(SledY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[1346:3385,] #subset
-fd <- rep(285, 25) #small data replacement
-T_field <- approxfun(x = c(0:2064), y = c(AvgTempKbyhr$x, fd), method = "linear", rule = 2) #the temp forcing function
-T_Sled2_Y2 <- T_field(0:2064) #for ease in later plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Sled2_Y2 <- ode(y = state_LoY2, t = times_Y2_Sled2, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Dredge line 1 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA_Y2 <- read.csv("WaterSamplesY2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA_Y2$Date <- mdy(WSA_Y2$Date) #convert dates
-names(WSA_Y2)[1] <- "Site" #only necessary for some computers to run this code
-Dredge_WSA2 <- filter(WSA_Y2, Site == "Moonstone Dredge") #filter by site
-daily <- seq(as.Date("2018-12-12"), as.Date("2019-05-03"), by="days") #growth date range
-Dredge_WSA2$NO3NO2_µM <- Dredge_WSA2$NO3NO2_µM/1000000 #convert from micromoles/L to moles/L
-#multiply by 24 to go from daily to hourly
-N_field <- approxfun(x = c(1*24, 93*24, 124*24, 142*24, 163*24), y = c(Dredge_WSA2$NO3NO2_µM), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-CO_2 <- CO_2/1000000 #need units to match K_C (molDIC/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Dredgey2 <-  NOAA_Irradiance$PAR[5686:6822] #subset by seq(as_datetime("2018-12-12 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3408, by = 3), y = NOAA_Irradiance_Dredgey2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Dredge_Y2_Hobo <- read.csv("Dredge_Y2_HoboTempLight.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Dredge_Y2_Hobo$DateTime <- mdy_hms(Dredge_Y2_Hobo$DateTime) #convert date time field
-Dredge_Y2_Hobo$Temp_K <- Dredge_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeY2T_hourly <- ceiling_date(Dredge_Y2_Hobo$DateTime, unit = "hour") #determine what times to aggregate around
-AvgTempKbyhr <- aggregate(Dredge_Y2_Hobo$Temp_K, by=list(DredgeY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[2:3384,] #subset
-fd <- rep(285, 26) #small amount of replacement data
-T_field <- approxfun(x = c(0:3408), y = c(AvgTempKbyhr$x, fd), method = "linear", rule = 2) #the temp forcing function
-T_Dredge1_Y2 <- T_field(0:3408) #for ease of plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Dredge1_Y2 <- ode(y = state_LoY2, t = times_Y2_Dredge1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Dredge line 2 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA_Y2 <- read.csv("WaterSamplesY2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA_Y2$Date <- mdy(WSA_Y2$Date) #convert dates
-names(WSA_Y2)[1] <- "Site" #only necessary for some computers to run this code
-Dredge_WSA2 <- filter(WSA_Y2, Site == "Moonstone Dredge") #filter by site
-daily <- seq(as.Date("2019-02-06"), as.Date("2019-05-03"), by="days") #date range kelp at farm
-Dredge_WSA2$NO3NO2_µM <- Dredge_WSA2$NO3NO2_µM/1000000 #convert from micromoles/L to moles/L
-#multiply by 24 to switch from daily to hourly
-N_field <- approxfun(x = c(-25*24, 37*24, 68*24, 86*24, 107*24), y = c(Dredge_WSA2$NO3NO2_µM), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-CO_2 <- CO_2/1000000 #need units to match K_C (molDIC/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Dredgey2_L2 <-  NOAA_Irradiance$PAR[6134:6822] #subset by seq(as_datetime("2019-02-06 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 2064, by = 3), y = NOAA_Irradiance_Dredgey2_L2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Dredge_Y2_Hobo <- read.csv("Dredge_Y2_HoboTempLight.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Dredge_Y2_Hobo$DateTime <- mdy_hms(Dredge_Y2_Hobo$DateTime) #convert date time field
-Dredge_Y2_Hobo$Temp_K <- Dredge_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-DredgeY2T_hourly <- ceiling_date(Dredge_Y2_Hobo$DateTime, unit = "hour") #determine values to aggregate around
-AvgTempKbyhr <- aggregate(Dredge_Y2_Hobo$Temp_K, by=list(DredgeY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr <- AvgTempKbyhr[1346:3385,] #subset
-fd <- rep(285, 25) #estimation to fill in gap in data
-T_field <- approxfun(x = c(0:2064), y = c(AvgTempKbyhr$x, fd), method = "linear", rule = 2) #the temp forcing function
-T_Dredge2_Y2 <- T_field(0:2064) #for ease in plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Dredge2_Y2 <- ode(y = state_LoY2, t = times_Y2_Dredge2, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Wickford line 1 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-WSA_Y2 <- read.csv("WaterSamplesY2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-WSA_Y2$Date <- mdy(WSA_Y2$Date) #convert dates
-names(WSA_Y2)[1] <- "Site" #only necessary for some computers to run this code
-Wickford_WSA2 <- filter(WSA_Y2, Site == "Wickford") #filter by site
-daily <- seq(as.Date("2018-12-19"), as.Date("2019-05-23"), by="days") #the date range for the kelp in the field
-Wickford_WSA2$NO3NO2_µM <- Wickford_WSA2$NO3NO2_µM/1000000 #convert from micromoles/L to moles/L
-#multiply by 24 to convert daily values to hourly values
-N_field <- approxfun(x = c(1*24, 55*24, 85*24, 156*24), y = c(Wickford_WSA2$NO3NO2_µM), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import lit TCO2 data
-names(Segarra2002Carbon)[1] <- "Date" #Only necessary for running the code on some computer
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #time field conversion
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_Wickfordy2 <-  NOAA_Irradiance$PAR[5742:6982] #subset by seq(as_datetime("2018-12-19 12:00:00"), as_datetime("2019-05-23 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3720, by = 3), y = NOAA_Irradiance_Wickfordy2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-Wickford_Y2_Hobo <- read.csv("Wickford_Y2_HoboLightTemp.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-Wickford_Y2_Hobo$DateTime <- mdy_hms(Wickford_Y2_Hobo$DateTime) #convert date time field
-Wickford_Y2_Hobo$Temp_K <- Wickford_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-WickfordY2T_hourly <- ceiling_date(Wickford_Y2_Hobo$DateTime, unit = "hour") #determine the times to aggregate around
-AvgTempKbyhr <- aggregate(Wickford_Y2_Hobo$Temp_K, by=list(WickfordY2T_hourly), mean) #calculate average hourly temp
-fd <- rep(278, 4) #replacement data
-AvgTempKbyhr_sub <- AvgTempKbyhr[4:3716,] #subset
-fd2 <- rep(287, 4) #second small section of replacement data
-T_field <- approxfun(x = c(0:3720), y = c(fd, AvgTempKbyhr_sub$x, fd2), method = "linear", rule = 2) #the temp forcing function
-T_Wickford1_Y2 <- T_field(0:3720) #for ease of plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_Wickford1_Y2 <- ode(y = state_LoY2, t = times_Y2_Wickford1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Rome Point line 1 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-GSO_N1 <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-GSO_N1$Date <- mdy(GSO_N1$Date) #convert dates
-GSO_N1 <- GSO_N1[103:124,]
-daily <- seq(as.Date("2018-12-20"), as.Date("2019-05-24"), by="days") #the date range for kelp on the farm
-GSO_N1$NO3NO2 <- GSO_N1$NO3NO2/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to take daily values to hourly values
-N_field <- approxfun(x = c(8*24, 14*24, 20*24, 29*24, 35*24, 41*24, 48*24, 56*24, 62*24, 69*24, 79*24, 83*24, 93*24, 99*24, 107*24, 111*24, 118*24, 125*24, 132*24, 139*24, 146*24, 153*24), y = c(GSO_N1$NO3NO2), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import literature DIC data
-names(Segarra2002Carbon)[1] <- "Date" #Only necessary to run this code on some computers
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #convert date field
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_RomePty2 <-  NOAA_Irradiance$PAR[5750:6990] #subset by seq(as_datetime("2018-12-20 12:00:00"), as_datetime("2019-05-24 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 3720, by = 3), y = NOAA_Irradiance_RomePty2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-RomePt_Y2_Hobo <- read.csv("RomePt_Y2_HoboTempLight.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-RomePt_Y2_Hobo$DateTime <- mdy_hm(RomePt_Y2_Hobo$DateTime) #convert date time field
-RomePt_Y2_Hobo$Temp_K <- RomePt_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-RomePtY2T_hourly <- ceiling_date(RomePt_Y2_Hobo$DateTime, unit = "hour") #determine the times to aggregate around
-AvgTempKbyhr <- aggregate(RomePt_Y2_Hobo$Temp_K, by=list(RomePtY2T_hourly), mean) #calculate average hourly temp
-fd <- rep(280, 4) #small bit of replacement data
-AvgTempKbyhr_sub <- AvgTempKbyhr[28:2414,] #subset
-#Using Wickford temp to fill in th gap in the Rome Pt temp
-Wickford_Y2_Hobo <- read.csv("Wickford_Y2_HoboLightTemp.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-Wickford_Y2_Hobo$DateTime <- mdy_hms(Wickford_Y2_Hobo$DateTime)
-Wickford_Y2_Hobo$Temp_K <- Wickford_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-WickfordY2T_hourly <- ceiling_date(Wickford_Y2_Hobo$DateTime, unit = "hour")
-AvgTempKbyhr_Wickford <- aggregate(Wickford_Y2_Hobo$Temp_K, by=list(WickfordY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr_W <- AvgTempKbyhr_Wickford[2415:3716,]
-fd2 <- rep(287, 28)
-T_field <- approxfun(x = c(0:3720), y = c(fd, AvgTempKbyhr_sub$x, AvgTempKbyhr_W$x, fd2), method = "linear", rule = 2) #the temp forcing function
-T_RomePt1_Y2 <- T_field(0:3720) #for ease of plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_RomePt1_Y2 <- ode(y = state_LoY2, t = times_Y2_RomePt1, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions with field data for Rome Point line 2 (y2)
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-GSO_N <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-GSO_N$Date <- mdy(GSO_N$Date) #convert dates
-GSO_N <- GSO_N[112:124,]
-daily <- seq(as.Date("2019-2-21"), as.Date("2019-05-24"), by="days") #date range for the kelp on the farm
-GSO_N$NO3NO2 <- GSO_N$NO3NO2/1000000 #convert from micromoles/L to moles/L
-#multiplied by 24 to take daily values to hourly values
-N_field <- approxfun(x = c(6*24, 16*24, 20*24, 30*24, 36*24, 44*24, 48*24, 55*24, 62*24, 69*24, 76*24, 83*24, 90*24), y = c(GSO_N$NO3NO2), method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-Segarra2002Carbon <- read.csv("BrentonPoint_Segarra2002CarbonData.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import lit TCO2 data
-names(Segarra2002Carbon)[1] <- "Date" #Only necessary to run this code on some computers
-Segarra2002Carbon$Date <- mdy(Segarra2002Carbon$Date) #convert date values
-CO_2 <- mean(Segarra2002Carbon$TCO2_micromolPERkg)/1000000 #(mol CO2/L)
-###### NOAA Irradiance forcing set-up ####
-NOAA_Irradiance_RomePty2_L2 <-  NOAA_Irradiance$PAR[6254:6990] #subset by seq(as_datetime("2019-2-21 12:00:00"), as_datetime("2019-05-24 12:00:00"), by="hour")
-I_field <- approxfun(x = seq(from = 0, to = 2208, by = 3), y = NOAA_Irradiance_RomePty2_L2, method = "linear", rule = 2) #irradiance forcing function
-###### Temp forcing set-Up #############
-RomePt_Y2_Hobo <- read.csv("RomePt_Y2_HoboTempLight.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-RomePt_Y2_Hobo$DateTime <- mdy_hm(RomePt_Y2_Hobo$DateTime) #convert date time
-RomePt_Y2_Hobo$Temp_K <- RomePt_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-RomePtY2T_hourly <- ceiling_date(RomePt_Y2_Hobo$DateTime, unit = "hour") #determine what times to aggregate around
-AvgTempKbyhr <- aggregate(RomePt_Y2_Hobo$Temp_K, by=list(RomePtY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr_sub <- AvgTempKbyhr[1536:2414,] #subset
-#Using Wickford temp to fill in th gap in the Rome Pt temp
-Wickford_Y2_Hobo <- read.csv("Wickford_Y2_HoboLightTemp.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-Wickford_Y2_Hobo$DateTime <- mdy_hms(Wickford_Y2_Hobo$DateTime)
-Wickford_Y2_Hobo$Temp_K <- Wickford_Y2_Hobo$Temp_C+273.15 #create collumn with temp in K
-WickfordY2T_hourly <- ceiling_date(Wickford_Y2_Hobo$DateTime, unit = "hour")
-AvgTempKbyhr_Wickford <- aggregate(Wickford_Y2_Hobo$Temp_K, by=list(WickfordY2T_hourly), mean) #calculate average hourly temp
-AvgTempKbyhr_W <- AvgTempKbyhr_Wickford[2415:3716,]
-fd2 <- rep(287, 28)
-T_field <- approxfun(x = c(0:2208), y = c(AvgTempKbyhr_sub$x, AvgTempKbyhr_W$x, fd2), method = "linear", rule = 2) #the temp forcing function
-T_RomePt2_Y2 <- T_field(0:2208) #for ease in plotting
-#####################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Model run (the differential equation solver)
-sol_RomePt2_Y2 <- ode(y = state_LoY2, t = times_Y2_RomePt2, func = rates_Lo, parms = params_Lo)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -918,247 +417,139 @@ sol_Johansson2002 <- Photosynthesis(params_NS, state_Johansson, w_V, w_EN, w_EC,
 sol_Johansson2002 <- as.data.frame(sol_Johansson2002) #conversion to dataframe for later use
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#--------------------------------------------
+# Start MODEL ode 
+#--------------------------------------------
+
 ###### Convert DeSolve solutions into data frame for broader plotting use ####
-##### Year 1 #####
 #conversions to dataframes
-sol_NS <- as.data.frame(sol_NS_ZL)
-sol_Sled1 <- as.data.frame(sol_Sled1)
-sol_Sled2 <- as.data.frame(sol_Sled2)
-sol_Dredge1 <- as.data.frame(sol_Dredge1)
-sol_Dredge2 <- as.data.frame(sol_Dredge2)
-sol_Wickford1 <- as.data.frame(sol_Wickford1)
-sol_RomePt1 <- as.data.frame(sol_RomePt1)
-sol_RomePt2 <- as.data.frame(sol_RomePt2)
+sol_NS_ZL <- as.data.frame(sol_NS_ZL)
 
 #addition of a date variable
-sol_NS$Date <- seq(as_datetime("2019-11-1 00:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
-sol_Sled1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-17 12:00:00"), by="hour")
-sol_Sled2$Date <- seq(as_datetime("2017-11-29 12:00:00"), as_datetime("2018-04-17 12:00:00"), by="hour")
-sol_Dredge1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-22 12:00:00"), by="hour")
-sol_Dredge2$Date <-seq(as_datetime("2017-11-29 12:00:00"), as_datetime("2018-04-22 12:00:00"), by="hour")
-sol_Wickford1$Date <- seq(as_datetime("2017-12-4 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
-sol_RomePt1$Date <- seq(as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
-sol_RomePt2$Date  <- seq(as_datetime("2017-12-6 12:00:00"), as_datetime("2018-04-21 12:00:00"), by="hour")
+sol_NS_ZL$Date <- seq(as_datetime("2019-11-1 01:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
 
 #conversion back to Celsius from Kelvin
-sol_NS$TZ_C <- TZ_K - 273.15
-sol_Sled1$Temp_C <- T_Sled1_Y1 - 273.15
-sol_Sled2$Temp_C <- T_Sled2_Y1 - 273.15
-sol_Dredge1$Temp_C <- T_Dredge1_Y1 - 273.15
-sol_Dredge2$Temp_C <- T_Dredge2_Y1 - 273.15
-sol_Wickford1$Temp_C <- T_Wickford1_Y1 - 273.15
-sol_RomePt1$Temp_C <- T_RomePt1_Y1 - 273.15
-sol_RomePt2$Temp_C <- T_RomePt2_Y1 - 273.15
+sol_NS_ZL$TZ_C <- TZ_K - 273.15
 
 #create source collumn to prepare for binding all these dataframes together
-sol_NS$source <- "North Sea, just of the coast of Zeeland"
-sol_Sled1$source <- "Point Judith Pond N 1"
-sol_Sled2$source <- "Point Judith Pond N 2"
-sol_Dredge1$source <- "Point Judith Pond S 1"
-sol_Dredge2$source <- "Point Judith Pond S 2"
-sol_Wickford1$source <- "Narragansett Bay N 1"
-sol_RomePt1$source <- "Narragansett Bay S 1"
-sol_RomePt2$source  <- "Narragansett Bay S 2"
+sol_NS_ZL$source <- "North Sea, just of the coast of Zeeland"
 
 #combine all Y1 field data into one dataframe
-sol_all <- rbind(sol_Dredge1, sol_Dredge2, sol_RomePt1, sol_RomePt2, sol_Sled1, sol_Sled2, sol_Wickford1)
-sol_all <- rbind(sol_NS)
-##### Year 2 #####
-#conversions to dataframes
-sol_Sled1_Y2 <- as.data.frame(sol_Sled1_Y2)
-sol_Sled2_Y2 <- as.data.frame(sol_Sled2_Y2)
-sol_Dredge1_Y2 <- as.data.frame(sol_Dredge1_Y2)
-sol_Dredge2_Y2 <- as.data.frame(sol_Dredge2_Y2)
-sol_Wickford1_Y2 <- as.data.frame(sol_Wickford1_Y2)
-sol_RomePt1_Y2 <- as.data.frame(sol_RomePt1_Y2)
-sol_RomePt2_Y2 <- as.data.frame(sol_RomePt2_Y2)
+sol_all <- rbind(sol_NS_ZL)
 
-#addition of a date variable
-sol_Sled1_Y2$Date <- seq(as_datetime("2018-12-12 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour") 
-sol_Sled2_Y2$Date <- seq(as_datetime("2019-02-06 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-sol_Dredge1_Y2$Date <- seq(as_datetime("2018-12-12 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-sol_Dredge2_Y2$Date <- seq(as_datetime("2019-02-06 12:00:00"), as_datetime("2019-05-03 12:00:00"), by="hour")
-sol_Wickford1_Y2$Date <- seq(as_datetime("2018-12-19 12:00:00"), as_datetime("2019-05-23 12:00:00"), by="hour")
-sol_RomePt1_Y2$Date <- seq(as_datetime("2018-12-20 12:00:00"), as_datetime("2019-05-24 12:00:00"), by="hour")
-sol_RomePt2_Y2$Date <- seq(as_datetime("2019-2-21 12:00:00"), as_datetime("2019-05-24 12:00:00"), by="hour")
 
-#conversion back to Celsius from Kelvin
-sol_Sled1_Y2$Temp_C <- T_Sled1_Y2 - 273.15
-sol_Sled2_Y2$Temp_C <- T_Sled2_Y2 - 273.15
-sol_Dredge1_Y2$Temp_C <- T_Dredge1_Y2 - 273.15
-sol_Dredge2_Y2$Temp_C <- T_Dredge2_Y2 - 273.15
-sol_Wickford1_Y2$Temp_C <- T_Wickford1_Y2 - 273.15
-sol_RomePt1_Y2$Temp_C <- T_RomePt1_Y2 - 273.15
-sol_RomePt2_Y2$Temp_C <- T_RomePt2_Y2 - 273.15
 
-#create source collumn to prepare for binding all these dataframes together
-sol_Sled1_Y2$source <- "Point Judith Pond N 1"
-sol_Sled2_Y2$source <- "Point Judith Pond N 2"
-sol_Dredge1_Y2$source <- "Point Judith Pond S 1"
-sol_Dredge2_Y2$source <- "Point Judith Pond S 2"
-sol_Wickford1_Y2$source <- "Narragansett Bay N 1"
-sol_RomePt1_Y2$source <- "Narragansett Bay S 1"
-sol_RomePt2_Y2$source  <- "Narragansett Bay S 2"
 
-#combine all Y2 field data into one dataframe
-sol_all_Y2 <- rbind(sol_Dredge1_Y2, sol_Dredge2_Y2, sol_RomePt1_Y2, sol_RomePt2_Y2, sol_Sled1_Y2, sol_Sled2_Y2, sol_Wickford1_Y2)
 
 ##### Model Plots (Fig 3, 6, 8, 9) #####
-#Figure 3: combining all irradiance forcings
-plot_I_Y1 <- ggplot() + 
-  geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, I), color = "gray0") +
+#Irradiance plot
+plot_I <- ggplot() + 
+  geom_line(data = sol_all, aes(Date, I), size = 1 , color = "gray0") +
   theme_bw() +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
-  ylim(0,4) +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2017-2018)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
+  labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
   ggtitle("a)")
 
-plot_I_Y2 <- ggplot() + 
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, I), color = "gray0") +
-  xlim(as.POSIXct(c("2018-10-30 23:00:00", "2019-06-01 23:00:00"))) +
-  ylim(0,4) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2018-2019)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
-  ggtitle("b)")
-
-grid.arrange(plot_I_Y1, plot_I_Y2, ncol=2)
-
-#Figure 6
-#Temperature y1 plot
-plot_T_Y1 <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) + 
+#Temperature plot
+plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) + 
   geom_line() +
   scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) +
-  ylim(-2, 25) +
+  ylim(5, 12.5) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.title = element_blank()) +
   theme(legend.position="none") + 
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2017-2018)", y = "Temperature (°C)") +
-  ggtitle("A")
-#Temperature y2 plot
-plot_T_Y2 <- ggplot(data = sol_all_Y2, aes(Date, Temp_C, color = source)) + 
-  geom_line() +
-  scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) + #"gray77", "gray60", "gray60", "gray30", "gray30", "gray0", "gray0"
-  ylim(-2, 25) +
-  xlim(as.POSIXct(c("2018-10-30 23:00:00", "2019-06-01 23:00:00"))) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.title = element_blank()) +
-  theme(legend.position="none") + 
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2018-2019)", y = "Temperature (°C)") +
-  ggtitle("B")
-#N forcing y1 plot
-Sled_WSA$Date <- as.POSIXct(c("2018-04-11 23:0:0", "2018-03-20 23:0:0", "2018-02-14 23:0:0", "2017-11-01 23:0:0", "2017-11-29 23:0:0", "2018-01-24 23:0:0", "2018-04-22 23:0:0"))
-Dredge_WSA$Date <- as.POSIXct(c("2018-03-20 23:0:0", "2018-04-11 23:0:0", "2018-01-24 23:0:0", "2017-11-01 23:0:0", "2018-02-14 23:0:0"))
-Wickford_WSA$Date <- as.POSIXct(c("2018-03-29 23:0:0", "2017-08-18 23:0:0", "2017-12-04 23:0:0", "2018-02-23 23:0:0", "2018-02-01 23:0:0", "2018-01-11 23:0:0", "2018-04-21 23:0:0", "2018-09-11 23:0:0", "2018-08-08 23:0:0"))
-RomePt_WSA$Date <- as.POSIXct(c("2018-02-23 23:0:0", "2018-03-29 23:0:0", "2017-11-01 23:0:0", "2017-08-18 23:0:0", "2018-01-11 23:0:0", "2018-02-01 23:0:0", "2018-04-21 23:0:0", "2018-09-11 23:0:0", "2018-08-08 23:0:0"))
-plot_N <- ggplot() + 
-  geom_line(data = sol_all, aes(Date, N*1000000, color = source), size = 1) +
-  geom_point(data = Sled_WSA, aes(Date, NitrateNitrite_uM)) +
-  geom_point(data = Dredge_WSA, aes(Date, NitrateNitrite_uM)) +
-  geom_point(data = Wickford_WSA, aes(Date, NitrateNitrite_uM)) +
-  geom_point(data = RomePt_WSA, aes(Date, NitrateNitrite_uM)) +
-  scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  xlim(as.POSIXct(c("2017-11-01 12:00:00", "2018-04-24 12:00:00"))) +
-  ylim(0, 10) +
-  labs(x= "Date (2017-2018)", y = bquote('N concentration mol' ~NO[3]^{"-"}~ 'and' ~NO[2]^{"-"}~ 'L'^"-1")) +
-  ggtitle("C")
-#N forcing y2 plot
-Sled_WSA2$Date <- as.POSIXct(c("2018-12-12 23:0:0", "2019-02-06 23:0:0", "2019-03-14 23:0:0", "2019-04-14 23:0:0", "2019-05-02 23:0:0", "2019-05-23 23:0:0"))
-Dredge_WSA2$Date <- as.POSIXct(c("2018-12-12 23:0:0", "2019-03-14 23:0:0", "2019-04-14 23:0:0", "2019-05-02 23:0:0", "2019-05-23 23:0:0"))
-Wickford_WSA2$Date <- as.POSIXct(c("2018-12-19 23:0:0", "2019-02-11 23:0:0", "2019-03-13 23:0:0", "2019-05-23 23:0:0"))
-GSO_N1$Date <- as.POSIXct(c("2018-12-27 23:0:0", "2019-01-02 23:0:0", "2019-01-08 23:0:0", "2019-01-17 23:0:0", "2019-01-23 23:0:0", "2019-01-29 23:0:0", "2019-02-05 23:0:0", "2019-02-13 23:0:0", "2019-02-19 23:0:0", "2019-02-26 23:0:0", "2019-03-08 23:0:0", "2019-03-12 23:0:0", "2019-03-22 23:0:0", "2019-03-28 23:0:0", "2019-04-05 23:0:0", "2019-04-09 23:0:0", "2019-04-16 23:0:0", "2019-04-23 23:0:0", "2019-04-30 23:0:0", "2019-05-07 23:0:0", "2019-05-14 23:0:0", "2019-05-21 23:0:0"))
-plot_N_Y2 <- ggplot() + 
-  geom_line(data = sol_all_Y2, aes(Date, N*1000000, color = source), size = 1) +
-  geom_point(data = Sled_WSA2, aes(Date, NO3NO2_µM*1000000)) +
-  geom_point(data = Dredge_WSA2, aes(Date, NO3NO2_µM*1000000)) +
-  geom_point(data = Wickford_WSA2, aes(Date, NO3NO2_µM*1000000)) +
-  geom_point(data = GSO_N1, aes(Date, NO3NO2*1000000)) +
-  scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2018-2019)", y = bquote('N concentration mol' ~NO[3]^{"-"}~ 'and'~NO[2]^{"-"}~ 'L'^"-1")) +
-  ggtitle("D")
-grid.arrange(plot_T_Y1, plot_T_Y2, plot_N, plot_N_Y2, ncol=2) #gridded plot
+  labs(x= "Date (2019-2020)", y = "Temperature (°C)") +
+  ggtitle("Figure Sea surface Temperature in Zeeland")
 
-#read in GSO N data
-GSO_N <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-GSO_N$Date <- mdy(GSO_N$Date) #convert dates
-
-ggplot() + 
-  geom_line(data = GSO_N, aes(Date, NO3NO2)) +
-  geom_line(data = Wickford_WSA, aes(Date, NitrateNitrite_uM), color ="red") +                    
-  geom_line(data = RomePt_WSA, aes(Date, NitrateNitrite_uM), color ="blue") +
-  geom_line(data = RomePt_WSA2, aes(Date, NO3NO2_µM), color ="blue") +
-  geom_line(data = Wickford_WSA2, aes(Date, NO3NO2_µM*1000000), color ="red") +  
-  #scale_color_manual(values = c("gray77", "gray60", "gray60", "gray30", "gray30", "gray0", "gray0")) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
+#Nitrate plot
+(plot_N <- ggplot() + 
+  geom_line(data = sol_all, aes(Date, N), size = 1) +
+  #geom_point(data = sol_NS_ZL, aes(Date, N)) +
+  #theme_bw() +
   #theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+  #theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   #ylim(0, 10) +
-  labs(x= "Date", y = bquote('N concentration μmol' ~NO[3]^{"-"}~ 'and'~NO[2]^{"-"}~ 'L'^"-1"))
+  labs(x= "Date (2019-2020)", y = bquote('N concentration mol' ~NO[3]^{"-"}~ 'and' ~NO[2]^{"-"}~ 'L'^"-1")) +
+  ggtitle("Nitrate concentration in Zeeland"))
 
-#Figure 8
+#CO2 plot 
+(plot_CO2 <- ggplot() + 
+    geom_line(data = sol_all, aes(Date, C), size = 1) +
+    #geom_point(data = sol_NS_ZL, aes(Date, N)) +
+    #theme_bw() +
+    #theme(legend.position="none") +
+    #theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+    xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+    #ylim(0, 10) +
+    labs(x= "Date (2019-2020)", y = bquote('CO2 concentration mol'~ 'L'^"-1")) +
+    ggtitle("CO2 concentration in Zeeland"))
+
+grid.arrange(plot_I, plot_T, plot_N, plot_CO2, ncol=2) #gridded plot
+
+
+
+(plot_Mass <- ggplot() + 
+  geom_line(data = sol_all, aes(Date, M_V), size = 1) +
+  labs(x= "Date (2019-2020)", y = bquote('Mass in Mol')) +
+  ggtitle("Mass kelp growth in Zeeland"))
+
+
+#-----------------------
+
+
+
+#IGNORE
+#read in GSO N data
+#GSO_N <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
+#GSO_N$Date <- mdy(GSO_N$Date) #convert dates
+
+#ggplot() + 
+#  geom_line(data = GSO_N, aes(Date, NO3NO2)) +
+#  geom_line(data = Wickford_WSA, aes(Date, NitrateNitrite_uM), color ="red") +                    
+#  geom_line(data = RomePt_WSA, aes(Date, NitrateNitrite_uM), color ="blue") +
+#  geom_line(data = RomePt_WSA2, aes(Date, NO3NO2_µM), color ="blue") +
+#  geom_line(data = Wickford_WSA2, aes(Date, NO3NO2_µM*1000000), color ="red") +  
+  #scale_color_manual(values = c("gray77", "gray60", "gray60", "gray30", "gray30", "gray0", "gray0")) +
+#  theme_bw() +
+#  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
+  #theme(legend.position="none") +
+#  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+  #ylim(0, 10) +
+#  labs(x= "Date", y = bquote('N concentration μmol' ~NO[3]^{"-"}~ 'and'~NO[2]^{"-"}~ 'L'^"-1"))
+
+# Rejected C and R 
 plot_J_EC_R_PJ <- ggplot() +
-  geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EC_R, color = source)) +
-  geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EC_R, color = source)) +
+  geom_line(data = sol_all, aes(Date, J_EC_R, color = source)) +
+  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EC_R, color = source)) +
+  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EC_R, color = source)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
+  #xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
   theme_bw() +
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
+  #theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
-  labs(x= "Date (2017-2018)", y = bquote('Rejected C (mol C mol V'^"-1"*' h'^"-1"*')')) +
+  labs(x= "Date (2019-2020)", y = bquote('Rejected C (mol C mol V'^"-1"*' h'^"-1"*')')) +
   ggtitle("A)")
-plot_J_EC_R_PJ_Y2 <- ggplot() +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, J_EC_R, color = source)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, J_EC_R, color = source)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2018-10-30 23:00:00", "2019-06-01 23:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2018-2019)", y = bquote('Rejected C (mol C mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("B)")
+
 plot_J_EN_R_PJ <- ggplot() +
-  geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EN_R, color = source)) +
-  geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EN_R, color = source)) +
+  geom_line(data = sol_all, aes(Date, J_EN_R, color = source)) +
+  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EN_R, color = source)) +
+  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EN_R, color = source)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
+  #xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
   theme_bw() +
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
-  labs(x= "Date (2017-2018)", y = bquote('Rejected N (mol N mol V'^"-1"*' h'^"-1"*')')) +
+  labs(x= "Date (2019-2020)", y = bquote('Rejected N (mol N mol V'^"-1"*' h'^"-1"*')')) +
   ggtitle("C)")
-plot_J_EN_R_PJ_Y2 <- ggplot() +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, J_EN_R, color = source)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, J_EN_R, color = source)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2018-10-30 23:00:00", "2019-06-01 23:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2018-2019)", y = bquote('Rejected N (mol N mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("D)")
-grid.arrange(plot_J_EC_R_PJ, plot_J_EC_R_PJ_Y2, plot_J_EN_R_PJ, plot_J_EN_R_PJ_Y2, ncol=2)
+
+grid.arrange(plot_J_EC_R_PJ, plot_J_EN_R_PJ, ncol=2)
 
 #Figure 9
 plot_T_PJ_Y2 <- ggplot() + 

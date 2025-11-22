@@ -258,6 +258,7 @@ TZ_K <- temp$TZ_K
 setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
 ###CO2 forcing###
+#Dit mist de maand mei, omdat als je lineair interpoleerd doe je tussen twee punten, nu pakt hij de eerste van de maand als de punt dat hij ingelezen heeft. Maar dan is er niks aan t einde van mei. Dus moeten we ook de maand Juni in lezen anders is er in de maand mei niks. En eigen lijk ook kijken waneer de meting is genomen in de maand. 
 TCO2_monthly <- read.csv("DICNovDecJan_Depths0_5_10.csv")
 density_seawater <- 1.026 #kilo/liter
 TCO2_monthly$Depth_0m <- TCO2_monthly$Depth_0m/1000000 * density_seawater
@@ -299,7 +300,7 @@ TCO2_hourly <- data.frame(
   Depth_5m   = f_5m(t_hours_num),
   Depth_10m  = f_10m(t_hours_num)
 )
-
+which(!is.finite(TCO2_hourly$Depth_0m)) 
 
 plotplot_TCO2 <- ggplot() + 
   geom_line(data = TCO2_hourly, aes(Datetime, Depth_0m), color = "gray0") 
@@ -316,7 +317,9 @@ plotplot_TCO2 <- ggplot() +
   #labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
   #ggtitle("a)")
   
-
+plotplot_TCO2
+str(TCO2_hourly$Datetime)
+TCO2_hourly$Datetime <- as.POSIXct(TCO2_hourly$Datetime, tz = "UTC")
 
 # make_function <- function(name) {
 #  function(t) {
@@ -547,7 +550,7 @@ plot_J_EN_R_PJ <- ggplot() +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
   labs(x= "Date (2019-2020)", y = bquote('Rejected N (mol N mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("C)")
+  ggtitle("B)")
 
 grid.arrange(plot_J_EC_R_PJ, plot_J_EN_R_PJ, ncol=2)
 

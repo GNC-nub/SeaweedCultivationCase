@@ -525,7 +525,9 @@ grid.arrange(plot_I, plot_T, plot_N, plot_CO2, ncol=2) #gridded plot
   #ylim(0, 10) +
 #  labs(x= "Date", y = bquote('N concentration μmol' ~NO[3]^{"-"}~ 'and'~NO[2]^{"-"}~ 'L'^"-1"))
 
-# Rejected C and R 
+
+
+# Rejected C and R (Figure 8????) 
 plot_J_EC_R_PJ <- ggplot() +
   geom_line(data = sol_all, aes(Date, J_EC_R, color = source)) +
   #geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EC_R, color = source)) +
@@ -554,53 +556,57 @@ plot_J_EN_R_PJ <- ggplot() +
 
 grid.arrange(plot_J_EC_R_PJ, plot_J_EN_R_PJ, ncol=2)
 
-#Figure 9
-plot_T_PJ_Y2 <- ggplot() + 
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, C_T, color = source)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, C_T, color = source)) +
+
+# Relaxation rate --> Figure 9
+plot_T_PJ <- ggplot() + 
+  geom_line(data = sol_all, aes(Date, C_T)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2018-11-30 23:00:00", "2019-06-01 23:00:00"))) +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 00:00:00"))) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.title = element_blank()) +
   theme(legend.position="none") + 
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2018-2019)", y = "Temperature correction factor") +
+  labs(x= "Date (2019-2020)", y = "Temperature correction factor") +
   ggtitle("A)")
-plot_I_PJ_Y2 <- ggplot() + 
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, I)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, I)) +
+plot_I_PJ <- ggplot() + 
+  geom_line(data = sol_all, aes(Date, I)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2018-11-30 23:00:00", "2019-06-01 23:00:00"))) +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 00:00:00"))) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") +
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2018-2019)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
+  labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
   ggtitle("B)")
-plot_J_I_PJ_Y2 <- ggplot() +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, J_I, color = source)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, J_I, color = source)) +
+plot_J_I_PJ <- ggplot() + #???? look at the time (2 h 06-01 extra??) 
+  geom_line(data = sol_all, aes(Date, J_I, color = source)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2018-11-30 23:00:00", "2019-06-01 23:00:00"))) +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 02:00:00"))) +
   theme_bw() +
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
-  labs(x= "Date (2018-2019)", y = bquote('Specific relaxation rate (mol γ mol V'^"-1"*' h'^"-1"*')')) +
+  labs(x= "Date (2019-2020)", y = bquote('Specific relaxation rate (mol γ mol V'^"-1"*' h'^"-1"*')')) +
   ggtitle("C)")
-plot_J_EC_A_PJ_Y2 <- ggplot() +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, J_EC_A, color = source)) +
-  geom_line(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, J_EC_A, color = source)) +
+plot_J_EC_A_PJ <- ggplot() +
+  geom_line(data = sol_all, aes(Date, J_EC_A, color = source)) +
   scale_color_grey() +
-  xlim(as.POSIXct(c("2018-11-30 23:00:00", "2019-06-01 23:00:00"))) +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 02:00:00"))) +
   theme_bw() +
   theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
-  labs(x= "Date (2018-2019)", y = bquote('Specific C assimilation (mol C mol V'^"-1"*' h'^"-1"*')')) +
+  labs(x= "Date (2019-2020)", y = bquote('Specific C assimilation (mol C mol V'^"-1"*' h'^"-1"*')')) +
   ggtitle("D)")
-grid.arrange(plot_T_PJ_Y2, plot_I_PJ_Y2, plot_J_I_PJ_Y2, plot_J_EC_A_PJ_Y2, ncol=2)
+grid.arrange(plot_T_PJ, plot_I_PJ, plot_J_I_PJ, plot_J_EC_A_PJ, ncol=2)
+
+
+# ----------------------------------------------------------------------
+# Now its only field data and Literature data for comparison/Calibration
+#----------------------------------------------------------------------
+
+
 
 ##### Kelp Field Data Comparison plot (Figure 7) ####
 #import field data
@@ -877,6 +883,9 @@ PJN1_2_Y2 <- ggplot() +
   theme(legend.position="none")
 
 grid.arrange(NBN1, NBS1_2, PJN1_2, PJS1_2, NBN1_Y2, NBS1_2_Y2, PJN1_2_Y2, PJS1_2_Y2, ncol=4)
+
+
+
 
 ########
 ##### Literature data for comparison/Calibration ####

@@ -21,7 +21,7 @@ rates_NS <- function(t, state, parameters) {
     #Specific assimilation rate of N
     J_EN_A <- J_EN_AM*(N_field(t)/(N_field(t)+K_N))  #J_EN_A units: mol N/molV/h
     N <- N_field(t) #just to save N forcing output
-    
+    C <- CO_2(t) #just to save CO_2 forcing output
     J_CO2_M <- JCO2M * C_T #Temperature correction max uptake rate of CO2 (photon capture not influenced by temp) J_CO2_M units: molC/molM_V/d
     #Specific CO2 uptake flux
     J_CO2 <- J_CO2_M*(CO_2(t)/(CO_2(t)+K_C)) #J_CO2 units: molC/molM_V/h
@@ -100,7 +100,7 @@ rates_NS <- function(t, state, parameters) {
     
     
     #output
-    return(list(c(dm_ECdt, dm_ENdt, dM_Vdt), r=r, W=W, C_T=C_T, I=I, N=N, J_CO2=J_CO2, J_I=J_I, J_EC_A=J_EC_A, J_EN_A=J_EN_A, J_EC_C=J_EC_C, J_EN_C=J_EN_C, J_EN_M=J_EN_M, J_EC_M=J_EC_M, J_EN_G=J_EN_G, J_EC_G=J_EC_G, J_G=J_G, J_VM=J_VM, J_EC_R=J_EC_R, J_EN_R=J_EN_R, L_allometric=L_allometric, J_O=J_O, info=info))
+    return(list(c(dm_ECdt, dm_ENdt, dM_Vdt), r=r, W=W, C_T=C_T, C=C, I=I, N=N, J_CO2=J_CO2, J_I=J_I, J_EC_A=J_EC_A, J_EN_A=J_EN_A, J_EC_C=J_EC_C, J_EN_C=J_EN_C, J_EN_M=J_EN_M, J_EC_M=J_EC_M, J_EN_G=J_EN_G, J_EC_G=J_EC_G, J_G=J_G, J_VM=J_VM, J_EC_R=J_EC_R, J_EN_R=J_EN_R, L_allometric=L_allometric, J_O=J_O, info=info))
   })
 }
 

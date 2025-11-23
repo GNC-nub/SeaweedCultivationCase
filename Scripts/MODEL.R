@@ -26,8 +26,9 @@ source("KelpDEB_model.R")
 source("N_uptake_Calibration.R")
 source("Photosynthesis_Calibration.R")
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##### Minerals and Organics Section #####
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Conversion coefficients, organics (n = matrix of chemical indices)
 # "food N" "food C" Stucture "N reserves" "C reserves" products
 #     X_N   X_C      V    E_N    E_C    P
@@ -52,9 +53,10 @@ w_V <- w_O[3]  # g/mol       #molecular weight of structure
 w_EN <- w_O[4]  # g/mol      #molecular weight of N reserve
 w_EC <- w_O[5]  #g/mol       #molecular weight of C reserve
 w_O2 <- 32 #g/mol
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##### Parameters compiled #####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 params_NS <- c(#maximum volume-specific assimilation rate of N before temperature correction
   JENAM = 1.5e-4, #mol N / molV / h
   #half saturation constant of N uptake
@@ -104,8 +106,10 @@ params_NS <- c(#maximum volume-specific assimilation rate of N before temperatur
   T_AL = 4391.9, #K
   #temperature at which rate parameters are given
   T_0 = 20 + 273.15) # K
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ####### State Initial conditions ############
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Initial conditions of state variables
 #these values are not coming from any field data or literature information, estimated
 #state_Lo <- c(m_EC = 0.002, #0.1, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
@@ -119,49 +123,26 @@ state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (
 state_Johansson <- c(m_EC = 0.3, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
                      m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
                      M_V = 0.005/(w_V+0.01*w_EN+0.3*w_EC)) #molM_V #initial mass of structure
-state_Johansson["M_V"]
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #######Time step to run the model on#######
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #(First number of time step, last number of time step, interval to step)
 times_NS <- seq(1, 5112, 1) #213 days stepped hourly
-#times_Lo_Sled1 <- seq(0, 4008, 1) #167 days stepped hourly
-#times_Lo_Sled2 <- seq(0, 3336, 1) #139 days stepped hourly
-#times_Lo_Dredge1 <- seq(0, 4128, 1) #172 days stepped hourly
-#times_Lo_Dredge2 <- seq(0, 3456, 1) #144 days stepped hourly
-#times_Lo_Wickford1 <- seq(0, 3312, 1) #138 days stepped hourly
-#times_Lo_RomePt1 <- seq(0, 4104, 1) #171 days stepped hourly
-#times_Lo_RomePt2 <- seq(0, 3264, 1) #136 days stepped hourly
 
-#times_Y2_Sled1 <- seq(0, 3408, 1) #142 days stepped hourly
-#times_Y2_Sled2 <- seq(0, 2064, 1) #86 days stepped hourly
-#times_Y2_Dredge1 <- seq(0, 3408, 1) #142 days stepped hourly
-#times_Y2_Dredge2 <- seq(0, 2064, 1) #86 days stepped hourly
-#times_Y2_Wickford1 <- seq(0, 3720, 1) #155 days stepped hourly
-#times_Y2_RomePt1 <- seq(0, 3720, 1) #155 days stepped hourly
-#times_Y2_RomePt2 <- seq(0, 2208, 1) #92 days stepped hourly
-
-###### Set up NOAA data (for Irradiance forcing) ####
-#NOAA irradiance data set-up: NOAASurfaceIrradiance
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Irradiance
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Irradiance <- read.csv("IR_result_PAR.csv", header = TRUE)
 
 Irradiance$date_time[Irradiance$block == 24] <- paste0(Irradiance$date_time[Irradiance$block == 24], " 00:00:00")
 
 Irradiance$date_time <- ymd_hms(Irradiance$date_time, tz = "UTC") #NOAA data in UTC (5 hours ahead)
 
-#Irradiance <- with_tz(NOAA_Irradiance, "America/New_York") #Convert from UTC to EST
-#NOAA_Irradiance$DownMinusUp <- NOAA_Irradiance$dswrf-NOAA_Irradiance$uswrf #net shortwave radiation at the surface (W/m^2) is obtained by subtracting the upward short wave flux (uswrf) from the downward flux (dswrf)
-#PAR = NSW*PAR_frac*C*exp(-k*z)*3600
-#NSW=dswrf-uswrf
-#PAR_frac is the fraction of the incident flux that is useable for photosynthesis
-#C is a conversion factor = 4.56 umol photons/s/W
-#k is the extinction coefficient
-#3600 converts from s^-1 to h^-1
-#1e-6 converts from micomoles to moles
-#NOAA_Irradiance$PAR <- NOAA_Irradiance$DownMinusUp*0.43*4.56*exp(-0.46*1)*3600*1e-6
 
-#############
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Nitrate 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 nitrate <- read.csv("Nitrate_NovMay.csv") 
 
 nitrate_hourly <- nitrate %>%
@@ -186,31 +167,9 @@ nitrate_hourly <- rbind(
 # N unit is now in: millimol/m^3, we convert it to mol/L 
 nitrate_hourly$no3 <- nitrate_hourly$no3/1000000
 
-
-#IGNORE
-#Setting up the forcing functions with field data for Sled line 1
-W <- 0.05 #inital biomass for conversions (cannot put in initial conditions)
-###### N forcing set-up##############
-#WSA2_Y1 <- read.csv("WaterSampleAnalysis2Y1.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water Q data
-#WSA2_Y1$Date <- mdy(WSA2_Y1$Date) #convert dates
-#names(WSA2_Y1)[1] <- "Site" #only necessary for some computers running this code
-#Sled_WSA <- filter(WSA2_Y1, Site == "Sled") #filter for Sled site
-#daily <- seq(as.Date("2017-11-1"), as.Date("2018-04-17"), by="days") #days kelp in water for this site
-#N <- Sled_WSA[c("Date","NitrateNitrite_uM")] #subset
-#N$NitrateNitrite_uM <- N$NitrateNitrite_uM/1000000
-#Converted to hourly by multiply by 24
-#N_field <- approxfun(x = c(161*24, 139*24, 105*24, 0, 28*24, 84*24, 172*24), y = N$NitrateNitrite_uM, method = "linear", rule = 2) #N forcing function
-###### DIC forcing set-up ###########
-#Sled_DIC <- read.csv("Ninigret_EPA_DIC.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import Ninigret DIC data
-#CO_2 <- mean(Sled_DIC$DIC.uMkg.mean) #micromole DIC/kg (Jason said it was okay to assume that 1kg of seawater is 1L of seawater (actual conversion requires density calc from salinity and T))
-#need units to match K_C (molDIC/L)
-#CO_2 <- CO_2/1000000
-
-###### NOAA Irradiance forcing set-up ####
-#NOAA_Irradiance_Sledy1 <-  NOAA_Irradiance$PAR[2438:3774] # subset based on as_datetime("2017-11-1 12:00:00"), as_datetime("2018-04-17 12:00:00")
-#I_field <- approxfun(x = seq(from = 0, to = 4008, by = 3), y = NOAA_Irradiance_Sledy1, method = "linear", rule = 2) #irradiance forcing function
-
-###### Temp forcing set-Up #############
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Sea surface temperature 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 temp <- read.csv("temperatue_20192020.csv")
 temp <- temp[7273:12385,]
 temp <- temp %>%
@@ -228,36 +187,9 @@ temp <- temp[-nrow(temp), ]
 #T_field <- make_function(temp$TZ_K)
 TZ_K <- temp$TZ_K
 
-#Import Sled Hobo (cynlinder) of just temp
-#Sled_Y1_hobotemp <- read.csv("Sled_Y1_TempLogger2.csv", header = TRUE, fileEncoding="UTF-8-BOM") #import
-#Sled_Y1_hobotemp$DateTime <- mdy_hms(Sled_Y1_hobotemp$Date_Time) #convert time field
-#Sled_Y1_hobotemp <- Sled_Y1_hobotemp[14:16049,] #subset
-#Sled_Y1_hobotemp$Temp_K <- Sled_Y1_hobotemp$Temp_C+273.15 #create collumn with temp in K
-#SledT_hourly <- ceiling_date(Sled_Y1_hobotemp$DateTime, unit = "hour") #set the values to aggregate around
-#AvgTempKbyhr <- aggregate(Sled_Y1_hobotemp$Temp_K, by=list(SledT_hourly), mean) #calculate average hourly temp
-#AvgTempKbyhr_part1 <- AvgTempKbyhr$x[0:334] #subset
-#Dredge_Y1_hobo <- read.csv("Dredge_Y1_hobo.csv", header = TRUE, fileEncoding="UTF-8-BOM") #importing neighboring temp file to replace corrupted section
-#Dredge_Y1_hobo$DateTime <- mdy_hms(Dredge_Y1_hobo$Date_Time) #convert time field
-#Dredge_Y1_hobo <- Dredge_Y1_hobo[3:16531,] #subset
-#Dredge_Y1_hobo$Temp_K <- Dredge_Y1_hobo$Temp_C+273.15 #create collumn with temp in K
-#DredgeT_hourly <- ceiling_date(Dredge_Y1_hobo$DateTime, unit = "hour") #set the values to aggregate around
-#AvgTempKbyhr4FD <- aggregate(Dredge_Y1_hobo$Temp_K, by=list(DredgeT_hourly), mean) #calculate average hourly temp
-#AvgTempKbyhr4FD <- AvgTempKbyhr4FD[4:4132, ] #subset
-#fd <- AvgTempKbyhr4FD$x[335:859] #526 data points needed from dredge to replace a weird glitch in the sled temp data
-#AvgTempKbyhr_part2 <- AvgTempKbyhr$x[860:4009] #later part of original temp file
-#T_field <- approxfun(x = c(0:4008), y = c(AvgTempKbyhr_part1, fd, AvgTempKbyhr_part2), method = "linear", rule = 2) #the temp forcing function
-#T_Sled1_Y1 <- T_field(0:4008) #saving the forcing this way for ease of later visualization
-#####################################################################################################################
-
-#Model run (the differential equation solver)
-#sol_Sled1 <- ode(y = state_Lo, t = times_Lo_Sled1, func = rates_Lo, parms = params_Lo)
-
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
-
-###CO2 forcing###
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### DIC forcing ###
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Dit mist de maand mei, omdat als je lineair interpoleerd doe je tussen twee punten, nu pakt hij de eerste van de maand als de punt dat hij ingelezen heeft. Maar dan is er niks aan t einde van mei. Dus moeten we ook de maand Juni in lezen anders is er in de maand mei niks. En eigen lijk ook kijken waneer de meting is genomen in de maand. 
 TCO2_monthly <- read.csv("DICNovDecJan_Depths0_5_10.csv")
 density_seawater <- 1.026 #kilo/liter
@@ -300,93 +232,47 @@ TCO2_hourly <- data.frame(
   Depth_5m   = f_5m(t_hours_num),
   Depth_10m  = f_10m(t_hours_num)
 )
-which(!is.finite(TCO2_hourly$Depth_0m)) 
 
 plotplot_TCO2 <- ggplot() + 
   geom_line(data = TCO2_hourly, aes(Datetime, Depth_0m), color = "gray0") 
-  #theme_bw() +
-  #geom_point(
-    #data = TCO2_monthly,
-    #aes(x = month_dates, y = Depth_0m),
-    #color = "red",
-    #size  = 3
-  #) +
-  #theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  #theme(legend.position="none") + 
-  #theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  #labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
-  #ggtitle("a)")
   
 plotplot_TCO2
 str(TCO2_hourly$Datetime)
 TCO2_hourly$Datetime <- as.POSIXct(TCO2_hourly$Datetime, tz = "UTC")
-# make_function <- function(name) {
-#  function(t) {
-#    idx <- floor(t) + 1L
-#    if (idx < 1L) idx <- 1L
-#    if (idx > length(name)) idx <- length(name)
-#    name[idx]
-#  }
-#}
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Rates_NS over time 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
-#Nitrate 
-#N_field <- make_function(nitrate_hourly$no3)
-#choose CO2 depth: 0, 5, or 10m 
-#CO_2 <- make_function(TCO2_hourly$Depth_0m)
-#choose Depth of irradiance: 0, 1, 4.5, 7m 
-#I_field <- make_function(Irradiance$PAR_1m)
-
-#general CO_2 value for dutch waters (in winter and spring), not used! 
-#CO_2_winter <- 0.00219564 
-#CO_2_spring <- 0.002174094
-#CO_2 <- CO_2_winter
-
 #inital biomass for conversions (cannot put in initial conditions)
-W <- 0.05 
+W <- 0.05 # Chosen by origonal paper 
+
+# Choose the right Irradiance depth here 
+depth_irradiance <- Irradiance$PAR_1m # 1m
+depth_irradiance <- Irradiance$PAR_2m # 2m 
+depth_irradiance <- Irradiance$PAR_4.5m # 4.5 m
+depth_irradiance <- Irradiance$PAR_7m # 7m
+
+# Choose the right DIC depth here 
+depth_CO_2 <- TCO2_hourly$Depth_0m # 0m
+depth_CO_2 <- TCO2_hourly$Depth_5m # 5m
+depth_CO_2 <- TCO2_hourly$Depth_10m # 10m
 
 
-time_grid <- seq(0, length(temp$TZ_K) - 1)
-T_field <- approxfun(x = time_grid, y = temp$TZ_K, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp$TZ_K) - 1), y = temp$TZ_K, rule = 2)
 N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
                      y = nitrate_hourly$no3,
                      rule = 2)
-I_field <- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1),
-                     y = Irradiance$PAR_1m,
+I_field <- approxfun(x = seq(0, length(depth_irradiance) - 1),
+                     y = depth_irradiance,
                      rule = 2)
-CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
-                     y = TCO2_hourly$Depth_0m,
+CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
+                     y = depth_CO_2,
                      rule = 2)
-
-
-N <- nitrate_hourly$no3
-I <- Irradiance$PAR_1m
-
-
-
-
-
-length(Irradiance$PAR_1m)
-length(TCO2_hourly$Depth_0m)
-length(nitrate_hourly$no3)
-length(temp$TZ_K)
-length(TZ_K)
-
-source("KelpDEB_model.R")
-
+#-------------------------------------------------------------------------------------------------------
+# Start MODEL ode 
+#-------------------------------------------------------------------------------------------------------
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
-
-
-#--------------------------------------------
-# Start MODEL ode 
-#--------------------------------------------
 
 ###### Convert DeSolve solutions into data frame for broader plotting use ####
 #conversions to dataframes
@@ -404,14 +290,13 @@ sol_NS_ZL$source <- "North Sea, just of the coast of Zeeland"
 #combine all Y1 field data into one dataframe
 sol_all <- rbind(sol_NS_ZL)
 
+#-------------------------------------------------------------------------------------------------------
+# Model plots 
+#-------------------------------------------------------------------------------------------------------
 
-
-
-
-##### Model Plots (Fig 3, 6, 8, 9) #####
-#Irradiance plot
+## Irradiance plot ###
 plot_I <- ggplot() + 
-  geom_line(data = sol_all, aes(Date, I), size = 1 , color = "gray0") +
+  geom_line(data = sol_all, aes(Date, I), color = "gray0") +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
   theme(legend.position="none") + 
@@ -419,7 +304,7 @@ plot_I <- ggplot() +
   labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
   ggtitle("a)")
 
-#Temperature plot
+## Temperature plot ##
 plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) + 
   geom_line() +
   scale_color_manual(values = c("blue", "blueviolet", "cyan", "coral", "darkgoldenrod1", "firebrick", "black")) +
@@ -432,7 +317,7 @@ plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) +
   labs(x= "Date (2019-2020)", y = "Temperature (°C)") +
   ggtitle("Figure Sea surface Temperature in Zeeland")
 
-#Nitrate plot
+## Nitrate plot ##
 (plot_N <- ggplot() + 
   geom_line(data = sol_all, aes(Date, N), size = 1) +
   #geom_point(data = sol_NS_ZL, aes(Date, N)) +
@@ -444,7 +329,7 @@ plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) +
   labs(x= "Date (2019-2020)", y = bquote('N concentration mol' ~NO[3]^{"-"}~ 'and' ~NO[2]^{"-"}~ 'L'^"-1")) +
   ggtitle("Nitrate concentration in Zeeland"))
 
-#CO2 plot 
+## CO2 plot ##
 (plot_CO2 <- ggplot() + 
     geom_line(data = sol_all, aes(Date, C), size = 1) +
     #geom_point(data = sol_NS_ZL, aes(Date, N)) +
@@ -459,7 +344,7 @@ plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) +
 grid.arrange(plot_I, plot_T, plot_N, plot_CO2, ncol=2) #gridded plot
 
 
-#reserves
+## Structure, C and N reserves ##
 (plot_reserves <- ggplot() +
   geom_line(data = sol_all, aes(Date, M_V,  color = "Mol structure"),  size = 1) +
   geom_line(data = sol_all, aes(Date, m_EC, color = "Mol C reserve"), size = 1) +
@@ -473,39 +358,178 @@ grid.arrange(plot_I, plot_T, plot_N, plot_CO2, ncol=2) #gridded plot
   ggtitle("Mass of structure and reserve density \n(of C and N) for kelp growth in the \nNorth Sea near Zeeland") +
   theme_minimal())
 
+## Whole blade dry weight in grams ##
 plot_mass <- ggplot() +
-    geom_line(data = sol_all, aes(Date, W, color = "Biomass"), size = 1) +
-    scale_color_manual(values = c("Biomass" = "orange"),
-                       name = "Variable") +
-    labs(x = "Date (2019-2020)",
-         y = bquote('blade dry weight (g)')) +
-    ggtitle("Whole S. latissima blade dry weight in the \nNorth Sea near Zeeland") +
-    theme_minimal()
-#Allometic relationship between length (cm) and dry weight (g) from Gevaert (2001)
+  geom_line(data = sol_all, aes(x = Date, y = W), color = "orange", size = 1) +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Blade dry weight (g)')) +
+  ggtitle("Whole *S. latissima* blade dry weight in the\nNorth Sea near Zeeland") +
+  theme_minimal()
+
+
+## Blade length in cm ##
+# This is the allometic relationship between length (cm) and dry weight (g) from Gevaert (2001)
 plot_length <- ggplot() +
-  geom_line(data = sol_all, aes(Date, L_allometric, color = "Blade Length"), size = 1) +
-  scale_color_manual(values = c("Blade Length" = "darkgreen"),
-                     name = "Variable") +
+  geom_line(data = sol_all, aes(x = Date, y = L_allometric), color = "darkgreen", size = 1) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm)')) +
   ggtitle("S. latissima blade length in the \nNorth Sea near Zeeland") +
   theme_minimal()
 grid.arrange(plot_mass, plot_length, ncol=2) #gridded plot
 
+
+#-------------------------------------------------------------------------------------------------------
+# Caluclations 
+#-------------------------------------------------------------------------------------------------------
+#Mass strucute created in Moll 
 mass_in_mol <- tail(sol_all$M_V, 1) - sol_all$M_V[1]
 mass_created <- mass_in_mol* w_V #w_V = molecular weight of structure(g/mol)
 mass_created # in grams
 
+# Dry body weight (of the blades) created in grams 
 weight = tail(sol_all$W, 1) - sol_all$W[1]
 weight # in grams 
 
+# Length grown (of the blades) in cm 
 blade_growth <- tail(sol_all$L_allometric, 1) - sol_all$L_allometric[1]
 blade_growth #in cm
 
-#-----------------------
+
+#-------------------------------------------------------------------------------------------------------
+# Depth analysis 
+#-------------------------------------------------------------------------------------------------------
+# Options for Irradiance at 1m, 2m, 4.5 and 7m. 
+# Options for CO2 at 0m, 5m and 10m 
+
+
+## Sea surface ##  
+#Choose option: CO2 = 0m and Irradiance = 1m (at line 250) 
+sea_surface_df <- sol_all
+
+## Medium depth ##
+#Choose option: CO2 = 5m and Irradiance = 4.5m (at line 250) 
+medium_depth_df <- sol_all
+
+## Deep depth ## 
+#Choose option: CO2 = 10m and Irradiance = 7m (at line 250) 
+deep_depth_df <- sol_all 
 
 
 
+## Irradiance plot ###
+plot_I <- ggplot() + 
+  geom_line(data = sea_surface_df, aes(Date, I, color = "Sea surface"), size = 1) +
+  geom_line(data = medium_depth_df, aes(Date, I, color = "Medium depth"), size = 1) +
+  geom_line(data = deep_depth_df, aes(Date, I, color = "Deep depth"), size = 1) +
+  scale_color_manual(values = c("Sea surface" = "lightblue",
+                                "Medium depth" = "blue",
+                                "Deep depth" = "darkblue"),
+                     name = "Variable") +
+  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
+  labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
+  ggtitle("a)")
+
+## CO2 plot ##
+plot_CO2 <- ggplot() + 
+    geom_line(data = sea_surface_df, aes(Date, C, color = "Sea surface"), size = 1) +
+    geom_line(data = medium_depth_df, aes(Date, C, color = "Medium depth"), size = 1) +
+    geom_line(data = deep_depth_df, aes(Date, C, color = "Deep depth"), size = 1) +
+    scale_color_manual(values = c("Sea surface" = "lightblue",
+                                  "Medium depth" = "blue",
+                                  "Deep depth" = "darkblue"),
+                       name = "Variable") +
+    xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+    labs(x= "Date (2019-2020)", y = bquote('CO2 concentration mol'~ 'L'^"-1")) +
+    ggtitle("CO2 concentration in Zeeland")
+
+grid.arrange(plot_I, plot_CO2, ncol=2) #gridded plot
+
+
+## Structure, C and N reserves ##
+plot_structure_reserves <- ggplot() +
+    geom_line(data = sea_surface_df, aes(Date, M_V, color = "Sea surface"), size = 1) +
+    geom_line(data = medium_depth_df, aes(Date, M_V, color = "Medium depth"), size = 1) +
+    geom_line(data = deep_depth_df, aes(Date, M_V, color = "Deep depth"), size = 1) +
+    scale_color_manual(values = c("Sea surface" = "lightblue",
+                                  "Medium depth" = "blue",
+                                  "Deep depth" = "darkblue"),
+                       name = "Variable") +
+    labs(x = "Date (2019-2020)",
+         y = bquote('Mol structure')) +
+    ggtitle("Structure in Mol") +
+    theme_minimal()
+
+plot_N_reserves <- ggplot() +
+  geom_line(data = sea_surface_df, aes(Date, m_EN, color = "Sea surface"), size = 1) +
+  geom_line(data = medium_depth_df, aes(Date, m_EN, color = "Medium depth"), size = 1) +
+  geom_line(data = deep_depth_df, aes(Date, m_EN, color = "Deep depth"), size = 1) +
+  scale_color_manual(values = c("Sea surface" = "lightblue",
+                                "Medium depth" = "blue",
+                                "Deep depth" = "darkblue"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Mol N reserve')) +
+  ggtitle("Reserve density of Nitrate") +
+  theme_minimal()
+
+plot_C_reserves <- ggplot() +
+  geom_line(data = sea_surface_df, aes(Date, m_EC, color = "Sea surface"), size = 1) +
+  geom_line(data = medium_depth_df, aes(Date, m_EC, color = "Medium depth"), size = 1) +
+  geom_line(data = deep_depth_df, aes(Date, m_EC, color = "Deep depth"), size = 1) +
+  scale_color_manual(values = c("Sea surface" = "lightblue",
+                                "Medium depth" = "blue",
+                                "Deep depth" = "darkblue"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Mol C reserve')) +
+  ggtitle("Reserve density of Carbon") +
+  theme_minimal()
+
+## Whole blade dry weight in grams ##
+plot_mass <- ggplot() +
+  geom_line(data = sea_surface_df, aes(Date, W, color = "Sea surface"), size = 1) +
+  geom_line(data = medium_depth_df, aes(Date, W, color = "Medium depth"), size = 1) +
+  geom_line(data = deep_depth_df, aes(Date, W, color = "Deep depth"), size = 1) +
+  scale_color_manual(values = c("Sea surface" = "lightblue",
+                                "Medium depth" = "blue",
+                                "Deep depth" = "darkblue"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Blade dry weight')) +
+  ggtitle("Whole S. latissima blade dry weight") +
+  theme_minimal()
+
+## Blade length in cm ##
+# This is the allometic relationship between length (cm) and dry weight (g) from Gevaert (2001)
+plot_length <- ggplot() +
+  geom_line(data = sea_surface_df, aes(Date, L_allometric, color = "Sea surface"), size = 1) +
+  geom_line(data = medium_depth_df, aes(Date, L_allometric, color = "Medium depth"), size = 1) +
+  geom_line(data = deep_depth_df, aes(Date, L_allometric, color = "Deep depth"), size = 1) +
+  scale_color_manual(values = c("Sea surface" = "lightblue",
+                                "Medium depth" = "blue",
+                                "Deep depth" = "darkblue"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Physical length (cm)')) +
+  ggtitle("S. latissima blade length") +
+  theme_minimal()
+
+grid.arrange(plot_structure_reserves, plot_N_reserves, plot_C_reserves, plot_mass, plot_length, ncol=2) #gridded plot
+
+
+#-------------------------------------------------------------------------------------------------------
+#Sensitivity analysis 
+#-------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+#-------------------------------------------------------------------------------------------------------
+# From here on useless
+#-------------------------------------------------------------------------------------------------------
 #IGNORE
 #read in GSO N data
 #GSO_N <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data

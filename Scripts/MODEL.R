@@ -112,14 +112,14 @@ params_NS <- c(#maximum volume-specific assimilation rate of N before temperatur
 #              m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
 #              M_V = 0.05/(w_V+0.01*w_EN+0.002*w_EC)) #molM_V #initial mass of structure
 
-#state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
-#                m_EN = 0.09, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
-#                M_V = 0.05/(w_V+0.09*w_EN+0.01*w_EC)) #molM_V #initial mass of structure
+state_LoY2 <- c(m_EC = 0.01, #0.9 #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
+                m_EN = 0.09, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
+                M_V = 0.05/(w_V+0.09*w_EN+0.01*w_EC)) #molM_V #initial mass of structure
 
 state_Johansson <- c(m_EC = 0.3, #mol C/molM_V  #Reserve density of C reserve (initial mass of C reserve per intital mass of structure)
                      m_EN = 0.01, #mol N/molM_V #Reserve density of N reserve (initial mass of N reserve per intital mass of structure)
                      M_V = 0.005/(w_V+0.01*w_EN+0.3*w_EC)) #molM_V #initial mass of structure
-
+state_Johansson["M_V"]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #######Time step to run the model on#######
 #(First number of time step, last number of time step, interval to step)
@@ -320,7 +320,6 @@ plotplot_TCO2 <- ggplot() +
 plotplot_TCO2
 str(TCO2_hourly$Datetime)
 TCO2_hourly$Datetime <- as.POSIXct(TCO2_hourly$Datetime, tz = "UTC")
-
 # make_function <- function(name) {
 #  function(t) {
 #    idx <- floor(t) + 1L
@@ -352,6 +351,7 @@ TCO2_hourly$Datetime <- as.POSIXct(TCO2_hourly$Datetime, tz = "UTC")
 #inital biomass for conversions (cannot put in initial conditions)
 W <- 0.05 
 
+
 time_grid <- seq(0, length(temp$TZ_K) - 1)
 T_field <- approxfun(x = time_grid, y = temp$TZ_K, rule = 2)
 N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
@@ -363,6 +363,7 @@ I_field <- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1),
 CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
                      y = TCO2_hourly$Depth_0m,
                      rule = 2)
+
 
 N <- nitrate_hourly$no3
 I <- Irradiance$PAR_1m
@@ -382,43 +383,6 @@ source("KelpDEB_model.R")
 # MODEL North Sea (region Zeeland)
 sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#END FIELD DATA, START LITERATURE DATA FOR CALIBRATION
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #9C
-###### N forcing set-up##############
-Nmax <- 73.1221719/1000000 #M
-
-###### Temperature forcing set-Up #############
-#9 C is 282.15 K
-T_dat <- 9 #C (conversion in Nuptake function to K)
-###################################
-#Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_9 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
-sol_EspinozaChapman1983_N_9 <- as.data.frame(sol_EspinozaChapman1983_N_9) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #18C
-###### N forcing set-up##############
-Nmax <- 76.9543147/1000000 #M
-
-###### Temperature forcing set-Up #############
-#18 C is 282.15 K
-T_dat <- 18 #C (conversion in Nuptake function to K)
-#################################
-#Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_18 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
-sol_EspinozaChapman1983_N_18 <- as.data.frame(sol_EspinozaChapman1983_N_18) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Photosynthesis model calibration
-##### Temp forcing set-up ####
-T_dat <- 14 #C (maintained for entire experiment
-###### I forcing set-up #####
-I_max <- 3233205 #micromol photons m-2 h-1
-##############
-sol_Johansson2002 <- Photosynthesis(params_NS, state_Johansson, w_V, w_EN, w_EC, w_O2, T_dat, I_max) #function from Photosynthesis_Calibration.R
-sol_Johansson2002 <- as.data.frame(sol_Johansson2002) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #--------------------------------------------
 # Start MODEL ode 
@@ -495,12 +459,48 @@ plot_T <- ggplot(data = sol_all, aes(Date, TZ_C, color = source)) +
 grid.arrange(plot_I, plot_T, plot_N, plot_CO2, ncol=2) #gridded plot
 
 
+#reserves
+(plot_reserves <- ggplot() +
+  geom_line(data = sol_all, aes(Date, M_V,  color = "Mol structure"),  size = 1) +
+  geom_line(data = sol_all, aes(Date, m_EC, color = "Mol C reserve"), size = 1) +
+  geom_line(data = sol_all, aes(Date, m_EN, color = "Mol N reserve"), size = 1) +
+  scale_color_manual(values = c("Mol structure" = "blue",
+                                "Mol C reserve" = "red",
+                                "Mol N reserve" = "green"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Mass in Mol')) +
+  ggtitle("Mass of structure and reserve density \n(of C and N) for kelp growth in the \nNorth Sea near Zeeland") +
+  theme_minimal())
 
-(plot_Mass <- ggplot() + 
-  geom_line(data = sol_all, aes(Date, M_V), size = 1) +
-  labs(x= "Date (2019-2020)", y = bquote('Mass in Mol')) +
-  ggtitle("Mass kelp growth in Zeeland"))
+plot_mass <- ggplot() +
+    geom_line(data = sol_all, aes(Date, W, color = "Biomass"), size = 1) +
+    scale_color_manual(values = c("Biomass" = "orange"),
+                       name = "Variable") +
+    labs(x = "Date (2019-2020)",
+         y = bquote('blade dry weight (g)')) +
+    ggtitle("Whole S. latissima blade dry weight in the \nNorth Sea near Zeeland") +
+    theme_minimal()
+#Allometic relationship between length (cm) and dry weight (g) from Gevaert (2001)
+plot_length <- ggplot() +
+  geom_line(data = sol_all, aes(Date, L_allometric, color = "Blade Length"), size = 1) +
+  scale_color_manual(values = c("Blade Length" = "darkgreen"),
+                     name = "Variable") +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Physical length (cm)')) +
+  ggtitle("S. latissima blade length in the \nNorth Sea near Zeeland") +
+  theme_minimal()
+grid.arrange(plot_mass, plot_length, ncol=2) #gridded plot
 
+mass_in_mol <- tail(sol_all$M_V, 1) - sol_all$M_V[1]
+mass_created <- mass_in_mol* w_V #w_V = molecular weight of structure(g/mol)
+mass_created # in grams
+
+weight = tail(sol_all$W, 1) - sol_all$W[1]
+weight # in grams 
+
+blade_growth <- tail(sol_all$L_allometric, 1) - sol_all$L_allometric[1]
+blade_growth #in cm
 
 #-----------------------
 
@@ -606,6 +606,43 @@ grid.arrange(plot_T_PJ, plot_I_PJ, plot_J_I_PJ, plot_J_EC_A_PJ, ncol=2)
 # Now its only field data and Literature data for comparison/Calibration
 #----------------------------------------------------------------------
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#END FIELD DATA, START LITERATURE DATA FOR CALIBRATION
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #9C
+###### N forcing set-up##############
+Nmax <- 73.1221719/1000000 #M
+
+###### Temperature forcing set-Up #############
+#9 C is 282.15 K
+T_dat <- 9 #C (conversion in Nuptake function to K)
+###################################
+#Model run (the differential equation solver)
+sol_EspinozaChapman1983_N_9 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
+sol_EspinozaChapman1983_N_9 <- as.data.frame(sol_EspinozaChapman1983_N_9) #conversion to dataframe for later use
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #18C
+###### N forcing set-up##############
+Nmax <- 76.9543147/1000000 #M
+
+###### Temperature forcing set-Up #############
+#18 C is 282.15 K
+T_dat <- 18 #C (conversion in Nuptake function to K)
+#################################
+#Model run (the differential equation solver)
+sol_EspinozaChapman1983_N_18 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
+sol_EspinozaChapman1983_N_18 <- as.data.frame(sol_EspinozaChapman1983_N_18) #conversion to dataframe for later use
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Photosynthesis model calibration
+##### Temp forcing set-up ####
+T_dat <- 14 #C (maintained for entire experiment
+###### I forcing set-up #####
+I_max <- 3233205 #micromol photons m-2 h-1
+##############
+sol_Johansson2002 <- Photosynthesis(params_NS, state_Johansson, w_V, w_EN, w_EC, w_O2, T_dat, I_max) #function from Photosynthesis_Calibration.R
+sol_Johansson2002 <- as.data.frame(sol_Johansson2002) #conversion to dataframe for later use
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 ##### Kelp Field Data Comparison plot (Figure 7) ####

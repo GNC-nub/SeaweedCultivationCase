@@ -572,40 +572,42 @@ grid.arrange(plot_structure_reserves, plot_N_reserves, plot_C_reserves, plot_mas
 temp_minus_20 <- temp$TZ_K * 0.8 
 T_field <- approxfun(x = seq(0, length(temp_minus_20) - 1), y = temp_minus_20, rule = 2) 
 # Run model again 
-temp_minus_20_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_20) 
+temp_minus_20_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_20) 
 
 temp_minus_10 <- temp$TZ_K * 0.9 
 T_field <- approxfun(x = seq(0, length(temp_minus_10) - 1), y = temp_minus_10, rule = 2)
 # Run model again 
-temp_minus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_10) 
+temp_minus_10_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_10) 
 
 temp_nul <- temp$TZ_K
 T_field <- approxfun(x = seq(0, length(temp_nul) - 1), y = temp_nul, rule = 2)
 # Run model again 
-temp_nul_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_nul) 
+temp_nul_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_nul) 
 
 temp_plus_10 <- temp$TZ_K * 1.1 
 T_field <- approxfun(x = seq(0, length(temp_plus_10) - 1), y = temp_plus_10, rule = 2)
 # Run model again 
-temp_plus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_10) 
+temp_plus_10_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_10) 
 
 temp_plus_20 <- temp$TZ_K * 1.2 
 T_field <- approxfun(x = seq(0, length(temp_plus_20) - 1), y = temp_plus_20, rule = 2)
 # Run model again 
-temp_plus_20_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_20) 
+temp_plus_20_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_20) 
+
 
 plot_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, TZ_C, color = "+ 20 %"), size = 1) +
   geom_line(data = temp_plus_10_df, aes(Date, TZ_C, color = "+ 10 %"), size = 1) +
-  geom_line(data = temp_plus_10_df, aes(Date, TZ_C, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_nul_df, aes(Date, TZ_C, color = "0 %"), size = 0.5) +
   geom_line(data = temp_minus_10_df, aes(Date, TZ_C, color = "- 10 %"), size = 1) +
   geom_line(data = temp_minus_20_df, aes(Date, TZ_C, color = "- 20 %"), size = 1) +
-  scale_color_manual(values = c("+ 20 %" = "red", 
-                                "+ 10 %" = "orange",
-                                "0 %" = "black",
-                                "- 10 %" = "purple",
-                                "- 20 %" = "lightblue"),
-                     name = "Variable") +
+  scale_color_manual(values = c(
+    "+ 20 %" = "red",
+    "+ 10 %" = "orange",
+    "0 %"     = "black",
+    "- 10 %" = "purple",
+    "- 20 %" = "lightblue"),
+    breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Temperature in gedrees Celcius')) +
   ggtitle("Temperature sensitivity analysis")
@@ -614,15 +616,16 @@ plot_temp_sens <- ggplot() +
 plot_biomass_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, W, color = "+ 20 %"), size = 1) +
   geom_line(data = temp_plus_10_df, aes(Date, W, color = "+ 10 %"), size = 1) +
-  geom_line(data = temp_plus_10_df, aes(Date, W, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_nul_df, aes(Date, W, color = "0 %"), size = 0.5) +
   geom_line(data = temp_minus_10_df, aes(Date, W, color = "- 10 %"), size = 1) +
   geom_line(data = temp_minus_20_df, aes(Date, W, color = "- 20 %"), size = 1) +
-  scale_color_manual(values = c("+ 20 %" = "red", 
-                                "+ 10 %" = "orange",
-                                "0 %" = "black",
-                                "- 10 %" = "purple",
-                                "- 20 %" = "lightblue"),
-                     name = "Variable") +
+  scale_color_manual(values = c(
+                       "+ 20 %" = "red",
+                       "+ 10 %" = "orange",
+                       "0 %"     = "black",
+                       "- 10 %" = "purple",
+                       "- 20 %" = "lightblue"),
+                     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams')) +
   ggtitle("S. latissima biomass growth in varing temperatures in the north sea")
@@ -630,16 +633,16 @@ plot_biomass_temp_sens <- ggplot() +
 plot_length_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
   geom_line(data = temp_plus_10_df, aes(Date, L_allometric, color = "+ 10 %"), size = 1) +
-  geom_line(data = temp_plus_10_df, aes(Date, L_allometric, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_nul_df, aes(Date, L_allometric, color = "0 %"), size = 0.5) +
   geom_line(data = temp_minus_10_df, aes(Date, L_allometric, color = "- 10 %"), size = 1) +
   geom_line(data = temp_minus_20_df, aes(Date, L_allometric, color = "- 20 %"), size = 1) +
-  scale_color_manual(values = c("+ 20 %" = "red", 
-                                "+ 10 %" = "orange",
-                                "0 %" = "black",
-                                "- 10 %" = "purple",
-                                "- 20 %" = "lightblue"),
-                     name = "Variable") +
-  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  scale_color_manual(values = c(
+    "+ 20 %" = "red",
+    "+ 10 %" = "orange",
+    "0 %"     = "black",
+    "- 10 %" = "purple",
+    "- 20 %" = "lightblue"),
+    breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm)')) +
   ggtitle("S. latissima blade length") +
@@ -648,43 +651,44 @@ plot_length_temp_sens <- ggplot() +
 plot_Creserve_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, m_EC, color = "+ 20 %"), size = 1) +
   geom_line(data = temp_plus_10_df, aes(Date, m_EC, color = "+ 10 %"), size = 1) +
-  geom_line(data = temp_plus_10_df, aes(Date, m_EC, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_nul_df, aes(Date, m_EC, color = "0 %"), size = 0.5) +
   geom_line(data = temp_minus_10_df, aes(Date, m_EC, color = "- 10 %"), size = 1) +
   geom_line(data = temp_minus_20_df, aes(Date, m_EC, color = "- 20 %"), size = 1) +
-  scale_color_manual(values = c("+ 20 %" = "red", 
-                                "+ 10 %" = "orange",
-                                "0 %" = "black",
-                                "- 10 %" = "purple",
-                                "- 20 %" = "lightblue"),
-                     name = "Variable") +
+  scale_color_manual(values = c(
+    "+ 20 %" = "red",
+    "+ 10 %" = "orange",
+    "0 %"     = "black",
+    "- 10 %" = "purple",
+    "- 20 %" = "lightblue"),
+    breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x = "Date (2019-2020)",
        y = bquote('Mol C reserve')) +
-  ggtitle("Reserve density of C") 
+    ggtitle("Reserve density of C") 
 
 plot_Nreserve_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, m_EN, color = "+ 20 %"), size = 1) +
   geom_line(data = temp_plus_10_df, aes(Date, m_EN, color = "+ 10 %"), size = 1) +
-  geom_line(data = temp_plus_10_df, aes(Date, m_EN, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_nul_df, aes(Date, m_EN, color = "0 %"), size = 0.5) +
   geom_line(data = temp_minus_10_df, aes(Date, m_EN, color = "- 10 %"), size = 1) +
   geom_line(data = temp_minus_20_df, aes(Date, m_EN, color = "- 20 %"), size = 1) +
-  scale_color_manual(values = c("+ 20 %" = "red", 
-                                "+ 10 %" = "orange",
-                                "0 %" = "black",
-                                "- 10 %" = "purple",
-                                "- 20 %" = "lightblue"),
-                     name = "Variable") +
+  scale_color_manual(values = c(
+                       "+ 20 %" = "red",
+                       "+ 10 %" = "orange",
+                       "0 %"     = "black",
+                       "- 10 %" = "purple",
+                       "- 20 %" = "lightblue"),
+                     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x = "Date (2019-2020)",
        y = bquote('Mol N reserve')) +
   ggtitle("Reserve density of N") 
 
-grid.arrange(plot_temp_sens, plot_length_temp_sens, plot_biomass_temp_sens, plot_Nreserve_temp_sens, plot_Creserve_temp_sens, ncol=2) #gridded plot
+grid.arrange(plot_temp_sens, plot_length_temp_sens, plot_biomass_temp_sens, plot_Nreserve_temp_sens, plot_Creserve_temp_sens, ncol=3) #gridded plot
 
-
-#----------------------------------
+`#--------------------------------------------------------------------
 # Nitrate 
-#----------------------------------
+#--------------------------------------------------------------------
 N_minus_20 <- nitrate_hourly$no3 * 0.8 
 N_field <- approxfun(x = seq(0, length(N_minus_20) - 1), y = N_minus_20, rule = 2) 
 # Run model again 

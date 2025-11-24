@@ -10,7 +10,7 @@ library(stringr)
 library(purrr)
 
 #working directory
-setwd("D:/R/Wageningen/Seagriculture/Case study/IrradianceNovMay")
+setwd("D:/R/Wageningen/Seagriculture/Case study")
 
 #### IRRADIANCE NOV 2019 MAY 2020 ####
 #check one day
@@ -272,7 +272,7 @@ ggplot(tco2_df, aes(x = lon, y = lat, fill = TCO2)) +
 plot(TCO2, type = "l", 
      main = "Total dissolved inorganic C",
      xlab = "Time index", 
-     ylab = "inorgnaic C (W/m²)")
+     ylab = "inorgnaic C ")
 
 #Data CO2
 # Coordinates

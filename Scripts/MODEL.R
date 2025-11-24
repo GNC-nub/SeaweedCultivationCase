@@ -18,6 +18,8 @@ library(gridExtra)
 library(gdata)
 library(Metrics)
 library(pracma)
+library(glue)
+
 
 #Required for model runs
 source("SolveR_R.R")
@@ -248,14 +250,14 @@ W <- 0.05 # Chosen by origonal paper
 
 # Choose the right Irradiance depth here 
 depth_irradiance <- Irradiance$PAR_1m # 1m
-depth_irradiance <- Irradiance$PAR_2m # 2m 
-depth_irradiance <- Irradiance$PAR_4.5m # 4.5 m
-depth_irradiance <- Irradiance$PAR_7m # 7m
+#depth_irradiance <- Irradiance$PAR_2m # 2m 
+#depth_irradiance <- Irradiance$PAR_4.5m # 4.5 m
+#depth_irradiance <- Irradiance$PAR_7m # 7m
 
 # Choose the right DIC depth here 
 depth_CO_2 <- TCO2_hourly$Depth_0m # 0m
-depth_CO_2 <- TCO2_hourly$Depth_5m # 5m
-depth_CO_2 <- TCO2_hourly$Depth_10m # 10m
+#depth_CO_2 <- TCO2_hourly$Depth_5m # 5m
+#depth_CO_2 <- TCO2_hourly$Depth_10m # 10m
 
 
 T_field <- approxfun(x = seq(0, length(temp$TZ_K) - 1), y = temp$TZ_K, rule = 2)
@@ -272,23 +274,44 @@ CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
 # Start MODEL ode 
 #-------------------------------------------------------------------------------------------------------
 # MODEL North Sea (region Zeeland)
-sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
-
-###### Convert DeSolve solutions into data frame for broader plotting use ####
+#sol_NS_ZL <- ode(y= state_Johansson, t = times_NS, func = rates_NS, parms = params_NS)
 #conversions to dataframes
-sol_NS_ZL <- as.data.frame(sol_NS_ZL)
-
+#sol_NS_ZL <- as.data.frame(sol_NS_ZL)
 #addition of a date variable
-sol_NS_ZL$Date <- seq(as_datetime("2019-11-1 01:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
-
+#sol_NS_ZL$Date <- seq(as_datetime("2019-11-1 01:00:00"), as_datetime("2020-05-31 24:00:00"), by="hour")
 #conversion back to Celsius from Kelvin
-sol_NS_ZL$TZ_C <- TZ_K - 273.15
-
+#sol_NS_ZL$TZ_C <- TZ_K - 273.15
 #create source collumn to prepare for binding all these dataframes together
-sol_NS_ZL$source <- "North Sea, just of the coast of Zeeland"
-
+#sol_NS_ZL$source <- "North Sea, just of the coast of Zeeland"
 #combine all Y1 field data into one dataframe
-sol_all <- rbind(sol_NS_ZL)
+#sol_all <- rbind(sol_NS_ZL)
+
+# Function to run the model and create sol_all (the dataframe with the simulation)
+run_model <- function(state, times, rates_func, params, TZ_K) {
+  # Solve ODE system
+  sol <- ode(y = state, times = times, func = rates_func, parms = params)
+  
+  # Convert to data frame
+  sol_df <- as.data.frame(sol)
+  
+  # Add date sequence
+  sol_df$Date <- seq(
+    from = as_datetime("2019-11-01 01:00:00"),
+    to   = as_datetime("2020-05-31 24:00:00"),
+    by   = "hour"
+  )
+  
+  # Convert Kelvin to Celsius
+  sol_df$TZ_C <- TZ_K - 273.15
+  
+  # Add source column
+  sol_df$source <- "North Sea, just off the coast of Zeeland"
+  
+  # Return the processed data frame
+  return(sol_df)
+}
+
+sol_all <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K)
 
 #-------------------------------------------------------------------------------------------------------
 # Model plots 
@@ -363,7 +386,7 @@ plot_mass <- ggplot() +
   geom_line(data = sol_all, aes(x = Date, y = W), color = "orange", size = 1) +
   labs(x = "Date (2019-2020)",
        y = bquote('Blade dry weight (g)')) +
-  ggtitle("Whole *S. latissima* blade dry weight in the\nNorth Sea near Zeeland") +
+  ggtitle("Whole *S. latissima* blade dry \nweight in the North Sea \nnear Zeeland") +
   theme_minimal()
 
 
@@ -375,24 +398,24 @@ plot_length <- ggplot() +
        y = bquote('Physical length (cm)')) +
   ggtitle("S. latissima blade length in the \nNorth Sea near Zeeland") +
   theme_minimal()
-grid.arrange(plot_mass, plot_length, ncol=2) #gridded plot
+grid.arrange(plot_mass, plot_length, ncol=2) #grided plot
 
 
 #-------------------------------------------------------------------------------------------------------
-# Caluclations 
+# Calulations 
 #-------------------------------------------------------------------------------------------------------
-#Mass strucute created in Moll 
+#Mass structure created in Mol 
 mass_in_mol <- tail(sol_all$M_V, 1) - sol_all$M_V[1]
 mass_created <- mass_in_mol* w_V #w_V = molecular weight of structure(g/mol)
-mass_created # in grams
+print(glue("The total growth in blade structure is {mass_in_mol} Mol and {mass_created} grams"))
 
 # Dry body weight (of the blades) created in grams 
 weight = tail(sol_all$W, 1) - sol_all$W[1]
-weight # in grams 
+print(glue("The total growth in Dry body weight (of the blades) is {weight} grams "))
 
 # Length grown (of the blades) in cm 
 blade_growth <- tail(sol_all$L_allometric, 1) - sol_all$L_allometric[1]
-blade_growth #in cm
+print(glue("The total growth in blade length is {blade_growth} cm"))
 
 
 #-------------------------------------------------------------------------------------------------------
@@ -403,17 +426,37 @@ blade_growth #in cm
 
 
 ## Sea surface ##  
-#Choose option: CO2 = 0m and Irradiance = 1m (at line 250) 
-sea_surface_df <- sol_all
+depth_irradiance <- Irradiance$PAR_1m
+I_field <- approxfun(x = seq(0, length(depth_irradiance) - 1),
+                     y = depth_irradiance,
+                     rule = 2)
+depth_CO_2 <- TCO2_hourly$Depth_0m
+CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
+                  y = depth_CO_2,
+                  rule = 2)
+sea_surface_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K)
 
 ## Medium depth ##
-#Choose option: CO2 = 5m and Irradiance = 4.5m (at line 250) 
-medium_depth_df <- sol_all
+depth_irradiance <- Irradiance$PAR_4.5m
+I_field <- approxfun(x = seq(0, length(depth_irradiance) - 1),
+                     y = depth_irradiance,
+                     rule = 2)
+depth_CO_2 <- TCO2_hourly$Depth_5m
+CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
+                  y = depth_CO_2,
+                  rule = 2)
+medium_depth_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K)
 
 ## Deep depth ## 
-#Choose option: CO2 = 10m and Irradiance = 7m (at line 250) 
-deep_depth_df <- sol_all 
-
+depth_irradiance <- Irradiance$PAR_7m
+I_field <- approxfun(x = seq(0, length(depth_irradiance) - 1),
+                     y = depth_irradiance,
+                     rule = 2)
+depth_CO_2 <- TCO2_hourly$Depth_10m
+CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
+                  y = depth_CO_2,
+                  rule = 2)
+deep_depth_df <- run_model(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
 ## Irradiance plot ###
@@ -496,7 +539,7 @@ plot_mass <- ggplot() +
                                 "Deep depth" = "darkblue"),
                      name = "Variable") +
   labs(x = "Date (2019-2020)",
-       y = bquote('Blade dry weight')) +
+       y = bquote('Blade dry weight in grams')) +
   ggtitle("Whole S. latissima blade dry weight") +
   theme_minimal()
 
@@ -521,6 +564,186 @@ grid.arrange(plot_structure_reserves, plot_N_reserves, plot_C_reserves, plot_mas
 #-------------------------------------------------------------------------------------------------------
 #Sensitivity analysis 
 #-------------------------------------------------------------------------------------------------------
+#Before starting the Sensitivity analysis, make sure the baseline stats are set to sea surface depth
+
+#----------------------------------
+## Temperature ##
+#----------------------------------
+temp_minus_20 <- temp$TZ_K * 0.8 
+T_field <- approxfun(x = seq(0, length(temp_minus_20) - 1), y = temp_minus_20, rule = 2) 
+# Run model again 
+temp_minus_20_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_20) 
+
+temp_minus_10 <- temp$TZ_K * 0.9 
+T_field <- approxfun(x = seq(0, length(temp_minus_10) - 1), y = temp_minus_10, rule = 2)
+# Run model again 
+temp_minus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_minus_10) 
+
+temp_nul <- temp$TZ_K
+T_field <- approxfun(x = seq(0, length(temp_nul) - 1), y = temp_nul, rule = 2)
+# Run model again 
+temp_nul_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_nul) 
+
+temp_plus_10 <- temp$TZ_K * 1.1 
+T_field <- approxfun(x = seq(0, length(temp_plus_10) - 1), y = temp_plus_10, rule = 2)
+# Run model again 
+temp_plus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_10) 
+
+temp_plus_20 <- temp$TZ_K * 1.2 
+T_field <- approxfun(x = seq(0, length(temp_plus_20) - 1), y = temp_plus_20, rule = 2)
+# Run model again 
+temp_plus_20_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_20) 
+
+plot_temp_sens <- ggplot() + 
+  geom_line(data = temp_plus_20_df, aes(Date, TZ_C, color = "+ 20 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, TZ_C, color = "+ 10 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, TZ_C, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_minus_10_df, aes(Date, TZ_C, color = "- 10 %"), size = 1) +
+  geom_line(data = temp_minus_20_df, aes(Date, TZ_C, color = "- 20 %"), size = 1) +
+  scale_color_manual(values = c("+ 20 %" = "red", 
+                                "+ 10 %" = "orange",
+                                "0 %" = "black",
+                                "- 10 %" = "purple",
+                                "- 20 %" = "lightblue"),
+                     name = "Variable") +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x= "Date (2019-2020)", y = bquote('Temperature in gedrees Celcius')) +
+  ggtitle("Temperature sensitivity analysis")
+
+
+plot_biomass_temp_sens <- ggplot() + 
+  geom_line(data = temp_plus_20_df, aes(Date, W, color = "+ 20 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, W, color = "+ 10 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, W, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_minus_10_df, aes(Date, W, color = "- 10 %"), size = 1) +
+  geom_line(data = temp_minus_20_df, aes(Date, W, color = "- 20 %"), size = 1) +
+  scale_color_manual(values = c("+ 20 %" = "red", 
+                                "+ 10 %" = "orange",
+                                "0 %" = "black",
+                                "- 10 %" = "purple",
+                                "- 20 %" = "lightblue"),
+                     name = "Variable") +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams')) +
+  ggtitle("S. latissima biomass growth in varing temperatures in the north sea")
+
+plot_length_temp_sens <- ggplot() + 
+  geom_line(data = temp_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, L_allometric, color = "+ 10 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, L_allometric, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_minus_10_df, aes(Date, L_allometric, color = "- 10 %"), size = 1) +
+  geom_line(data = temp_minus_20_df, aes(Date, L_allometric, color = "- 20 %"), size = 1) +
+  scale_color_manual(values = c("+ 20 %" = "red", 
+                                "+ 10 %" = "orange",
+                                "0 %" = "black",
+                                "- 10 %" = "purple",
+                                "- 20 %" = "lightblue"),
+                     name = "Variable") +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Physical length (cm)')) +
+  ggtitle("S. latissima blade length") +
+  ggtitle("S. latissima biomass growth in varing temperatures in the north sea")
+
+plot_Creserve_temp_sens <- ggplot() + 
+  geom_line(data = temp_plus_20_df, aes(Date, m_EC, color = "+ 20 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, m_EC, color = "+ 10 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, m_EC, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_minus_10_df, aes(Date, m_EC, color = "- 10 %"), size = 1) +
+  geom_line(data = temp_minus_20_df, aes(Date, m_EC, color = "- 20 %"), size = 1) +
+  scale_color_manual(values = c("+ 20 %" = "red", 
+                                "+ 10 %" = "orange",
+                                "0 %" = "black",
+                                "- 10 %" = "purple",
+                                "- 20 %" = "lightblue"),
+                     name = "Variable") +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Mol C reserve')) +
+  ggtitle("Reserve density of C") 
+
+plot_Nreserve_temp_sens <- ggplot() + 
+  geom_line(data = temp_plus_20_df, aes(Date, m_EN, color = "+ 20 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, m_EN, color = "+ 10 %"), size = 1) +
+  geom_line(data = temp_plus_10_df, aes(Date, m_EN, color = "0 %"), linetype = 2, size = 0.5) +
+  geom_line(data = temp_minus_10_df, aes(Date, m_EN, color = "- 10 %"), size = 1) +
+  geom_line(data = temp_minus_20_df, aes(Date, m_EN, color = "- 20 %"), size = 1) +
+  scale_color_manual(values = c("+ 20 %" = "red", 
+                                "+ 10 %" = "orange",
+                                "0 %" = "black",
+                                "- 10 %" = "purple",
+                                "- 20 %" = "lightblue"),
+                     name = "Variable") +
+  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Mol N reserve')) +
+  ggtitle("Reserve density of N") 
+
+grid.arrange(plot_temp_sens, plot_length_temp_sens, plot_biomass_temp_sens, plot_Nreserve_temp_sens, plot_Creserve_temp_sens, ncol=2) #gridded plot
+
+
+#----------------------------------
+# Nitrate 
+#----------------------------------
+N_minus_20 <- nitrate_hourly$no3 * 0.8 
+N_field <- approxfun(x = seq(0, length(N_minus_20) - 1), y = N_minus_20, rule = 2) 
+# Run model again 
+N_minus_20_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+N_minus_10 <- nitrate_hourly$no3 * 0.9 
+N_field <- approxfun(x = seq(0, length(N_minus_10) - 1), y = N_minus_10, rule = 2) 
+# Run model again 
+N_minus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+N_0 <- nitrate_hourly$no3 
+N_field <- approxfun(x = seq(0, length(N_0) - 1), y = N_0,rule = 2) 
+# Run model again 
+N_0_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+
+N_plus_10 <- nitrate_hourly$no3 * 1.1 
+N_field <- approxfun(x = seq(0, length(N_plus_10) - 1), y = N_plus_10,rule = 2) 
+# Run model again 
+N_plus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+N_plus_20 <- nitrate_hourly$no3 * 1.2 
+N_field <- approxfun(x = seq(0, length(N_plus_20) - 1), y = N_plus_20,rule = 2) 
+# Run model again 
+N_plus_10_df <- create_sol_all(state = state_Johansson, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K)  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I_field <- approxfun(x = seq(0, length(depth_irradiance) - 1),
+                     y = depth_irradiance,
+                     rule = 2)
+CO_2 <- approxfun(x = seq(0, length(depth_CO_2) - 1),
+                  y = depth_CO_2,
+                  rule = 2)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

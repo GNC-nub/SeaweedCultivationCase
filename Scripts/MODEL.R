@@ -323,7 +323,6 @@ sol_all <- run_model(state = state_Clemente, times = times_NS, rates_func = rate
 #-------------------------------------------------------------------------------------------------------
 # Model plots 
 #-------------------------------------------------------------------------------------------------------
-
 ## Irradiance plot ###
 plot_I <- ggplot() + 
   geom_line(data = sol_all, aes(Date, I), color = "gray0") +
@@ -659,7 +658,6 @@ CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
 #----------------------------------
 ## Temperature ##
 #----------------------------------
-
 temp_minus_20 <- temp$TZ_K * 0.8 
 T_field <- approxfun(x = seq(0, length(temp_minus_20) - 1), y = temp_minus_20, rule = 2) 
 # Run model again 
@@ -684,29 +682,6 @@ temp_plus_20 <- temp$TZ_K * 1.2
 T_field <- approxfun(x = seq(0, length(temp_plus_20) - 1), y = temp_plus_20, rule = 2)
 # Run model again 
 temp_plus_20_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp_plus_20) 
-
-#BAR PLOT SETUP
-temp_plus_20_last <- temp_plus_20_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric)
-temp_plus_10_last <- temp_plus_10_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric)
-temp_nul_last <- temp_nul_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric)
-temp_minus_10_last <- temp_minus_10_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-temp_minus_20_last <- temp_minus_20_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-
-# Add 'Percentage' label to each
-temp_plus_20_last$percentage <- "+ 20"
-temp_plus_10_last$percentage <- "+ 10"
-temp_nul_last$percentage <- "+ 0 "
-temp_minus_10_last$percentage <- "- 10"
-temp_minus_20_last$percentage <- "- 20"
-
-temp_plus_20_last$env <- "temp"
-temp_plus_10_last$env <- "temp"
-temp_nul_last$env <- "temp"
-temp_minus_10_last$env <- "temp"
-temp_minus_20_last$env <- "temp"
-
-# Combine into one data frame
-sensitivity_analysis_T <- bind_rows(temp_plus_20_last, temp_plus_10_last, temp_nul_last, temp_minus_10_last, temp_minus_20_last)
 
 
 plot_temp_sens <- ggplot() + 
@@ -767,7 +742,6 @@ grid.arrange(plot_temp_sens, plot_length_temp_sens, plot_biomass_temp_sens, ncol
 #--------------------------------------------------------------------
 # Nitrate sensitivity 
 #--------------------------------------------------------------------
-
 T_field <- approxfun(x = seq(0, length(temp$TZ_K) - 1), y = temp$TZ_K, rule = 2)
 N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
                      y = nitrate_hourly$no3,
@@ -801,37 +775,10 @@ N_field <- approxfun(x = seq(0, length(N_plus_10) - 1), y = N_plus_10,rule = 2)
 # Run model again 
 N_plus_10_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
-N_plus_20 <- nitrate_hourly$no3 * 1.8 
+N_plus_20 <- nitrate_hourly$no3 * 1.2 
 N_field <- approxfun(x = seq(0, length(N_plus_20) - 1), y = N_plus_20,rule = 2) 
 # Run model again 
 N_plus_20_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K)  
-
-#BAR PLOT SETUP 
-N_plus_20_last <- N_plus_20_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-N_plus_10_last <- N_plus_10_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-N_nul_last <- N_nul_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric)
-N_minus_10_last <- N_minus_10_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-N_minus_20_last <- N_minus_20_df %>% filter(Date == max(Date, na.rm = TRUE)) %>% select(W, L_allometric) 
-
-# Add 'Percentage' label to each
-N_plus_20_last$percentage <- "+ 20"
-N_plus_10_last$percentage <- "+ 10"
-N_nul_last$percentage <- "+ 0 "
-N_minus_10_last$percentage <- "- 10"
-N_minus_20_last$percentage <- "- 20"
-
-N_plus_20_last$env <- "N"
-N_plus_10_last$env <- "N"
-N_nul_last$env <- "N"
-N_minus_10_last$env <- "N"
-N_minus_20_last$env <- "N"
-
-sensitivity_analysis_N <- bind_rows(N_plus_20_last, N_plus_10_last, N_nul_last, N_minus_10_last, N_minus_20_last)
-
-
-
-
-
 
 plot_N_sens <- ggplot() + 
   geom_line(data = N_plus_20_df, aes(Date, N, color = "+ 20 %"), size = 1) +
@@ -1016,7 +963,6 @@ CO_2 <- approxfun(x = seq(0, length(DIC_plus_20) - 1), y = DIC_plus_20, rule = 2
 DIC_plus_20_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
-
 plot_DIC_sens <- ggplot() + 
   geom_line(data = DIC_plus_20_df, aes(Date, C, color = "+ 20 %"), size = 1) +
   geom_line(data = DIC_plus_10_df, aes(Date, C, color = "+ 10 %"), size = 1) +
@@ -1076,38 +1022,234 @@ grid.arrange(plot_DIC_sens, plot_length_DIC_sens, plot_biomass_DIC_sens, ncol=3)
 #----------------------------------------------------------------------------------------
 # Plot sensitivity analysis 
 #----------------------------------------------------------------------------------------
+generate_sensitivity_df <- function(base_vector,       # e.g. TCO2_hourly$Depth_0m
+                                    param_name,        # e.g. "DIC concentration"
+                                    variable_name,     # e.g. "CO_2" or "I_field"
+                                    multiplier_seq = seq(0.2, 1.8, by = 0.1),
+                                    var_prefix = "env") {
+  results_list <- list()
+  
+  for (m in multiplier_seq) {
+    # Create percentage label for plotting
+    percent_change <- round((m - 1) * 100)
+    label <- ifelse(percent_change > 0,
+                    paste0("+ ", percent_change),
+                    ifelse(percent_change == 0, "0", paste0("- ", abs(percent_change))))
+    
+    # Create the scaled input vector
+    scaled_input <- base_vector * m
+   
+     # Reset baseline variables before starting analysis
+    T_field <<- approxfun(x = seq(0, length(temp$TZ_K) - 1), y = temp$TZ_K, rule = 2)
+    N_field <<- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1), y = nitrate_hourly$no3, rule = 2)
+    I_field <<- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1), y = Irradiance$PAR_1m, rule = 2)
+    CO_2    <<- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1), y = TCO2_hourly$Depth_0m, rule = 2)
+    
+    # Dynamically assign the environmental driver function
+    assign(variable_name,
+           eval(parse(text = paste0("approxfun(x = seq(0, length(scaled_input) - 1), y = scaled_input, rule = 2)"))),
+           envir = .GlobalEnv)
+    
+    # Run the model
+    df_result <- run_model(state = state_Clemente,
+                           times = times_NS,
+                           rates_func = rates_NS,
+                           params = params_NS,
+                           TZ_K = temp$TZ_K)
+    
+    # Get the last timestep
+    last_row <- df_result %>%
+      filter(Date == max(Date, na.rm = TRUE)) %>%
+      select(W, L_allometric) %>%
+      mutate(percentage = label,
+             env = param_name)
+    
+    # Store
+    results_list[[label]] <- last_row
+  }
+  
+  # Combine all into one data.frame
+  bind_rows(results_list)
+}
+
+
+sensitivity_analysis_DIC <- generate_sensitivity_df(
+  base_vector = TCO2_hourly$Depth_0m,
+  param_name = "DIC concentration",
+  variable_name = "CO_2",
+)
+
+sensitivity_analysis_I <- generate_sensitivity_df(
+  base_vector = Irradiance$PAR_1m,
+  param_name = "Irradiance",
+  variable_name = "I_field",
+)
+
+sensitivity_analysis_N <- generate_sensitivity_df(
+  base_vector = nitrate_hourly$no3,
+  param_name = "N concentration",
+  variable_name = "N_field",
+)
+
+sensitivity_analysis_T <- generate_sensitivity_df(
+  base_vector = temp$TZ_K,
+  param_name = "Temperature",
+  variable_name = "T_field",
+)
+
+
 # Combine into one data frame
-sensitivity_analysis <- bind_rows(sensitivity_analysis_T, sensitivity_analysis_N)
+sensitivity_analysis <- bind_rows(
+  sensitivity_analysis_DIC,
+  sensitivity_analysis_I,
+  sensitivity_analysis_N,
+  sensitivity_analysis_T
+)
 
 
-sensitivity_analysis_W <- sensitivity_analysis %>% 
-  select("W", "W_N", "percentage")
-
-sensitivity_analysis_L <- sensitivity_analysis %>% 
-  select("L_temp", "L_N", "percentage")
-
-
-
-plot_sensitivity_mass_bar <- ggplot(sensitivity_analysis, aes(y = W, x = percentage, fill= env)) +
-  geom_col(width = 0.5) +
-  labs(x = "Change (%)",
-       y = bquote('Blade dry weight \n(g per blade)')) +
-  ggtitle("e) Final blade dry weight") +
-  theme_minimal() + 
-  theme(legend.position = "none") 
-
-plot_sensitivity_length_bar <- ggplot(sensitivity_analysis, aes(x = percentage, y = L_temp)) +
-  geom_col(width = 0.5) +
-  labs(x = "Change (%)",
-       y = bquote('Blade length \n(cm per blade)')) +
-  ggtitle("f) Final blade length") +
-  theme_minimal() + 
-  theme(legend.position = "none") 
-grid.arrange(plot_sensitivity_mass_bar, plot_sensitivity_length_bar, ncol = 2)
+plot_sensitivity_mass_line <- ggplot(
+  sensitivity_analysis,
+  aes(x = factor(percentage, levels = c("- 80", "- 70", "- 60", "- 50", "- 40", "- 30", "- 20", "- 10", "0", "+ 10", "+ 20", "+ 30", "+ 40", "+ 50", "+ 60", "+ 70", "+ 80")),
+      y = W,
+      color = env,
+      group = env)
+) +
+  geom_point(size = 3) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c(
+    "Temperature" = "darkred",
+    "N concentration" = "black",
+    "Irradiance" = "blue",
+    "DIC concentration" = 'darkgreen'
+  )) +
+  labs(
+    x = "Change (%)",
+    y = bquote('Blade dry weight \n(g per blade)'),
+    color = "Environmental factor"
+  ) +
+  ggtitle("Final blade dry weight") +
+  theme_minimal()
 
 
+plot_sensitivity_length_line <- ggplot(
+  sensitivity_analysis,
+  aes(x = factor(percentage, levels = c("- 80", "- 70", "- 60", "- 50", "- 40", "- 30", "- 20", "- 10", "0", "+ 10", "+ 20", "+ 30", "+ 40", "+ 50", "+ 60", "+ 70", "+ 80")),
+      y = L_allometric,
+      color = env,
+      group = env)
+) +
+  geom_point(size = 3) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c(
+    "Temperature" = "darkred",
+    "N concentration" = "black",
+    "Irradiance" = "blue",
+    "DIC concentration" = 'darkgreen'
+  )) +
+  labs(
+    x = "Change (%)",
+    y = bquote('Blade length \n(cm per blade)'),
+    color = "Environmental factor"
+  ) +
+  ggtitle("Final blade length") +
+  theme_minimal()
+
+# Combine plots side-by-side
+grid.arrange(plot_sensitivity_mass_line, plot_sensitivity_length_line, ncol = 2)
 
 
+
+#---------------------------------------------------------------------------------------------------
+# Climate change scenario's 
+#---------------------------------------------------------------------------------------------------
+#Reset orginal values 
+T_field <- approxfun(x = seq(0, length(temp$TZ_K) - 1), y = temp$TZ_K, rule = 2)
+N_field <- approxfun(x = seq(0, length(nitrate_hourly$no3) - 1),
+                     y = nitrate_hourly$no3,
+                     rule = 2)
+I_field <- approxfun(x = seq(0, length(Irradiance$PAR_1m) - 1),
+                     y = Irradiance$PAR_1m,
+                     rule = 2)
+CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
+                  y = TCO2_hourly$Depth_0m,
+                  rule = 2)
+
+# Need to change still: Add irradiance only to the day. Add to Iraadiance NOT TO PAR.
+
+
+# For the CLimate change scenario's: We need to add the extra mean irradiance to ... , not to the par. 
+
+# Current situation 
+current_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+# RCP 2.6 Irradiance * 0.3, Temp + 0.5 
+irradiance_2_6 <- Irradiance$PAR_1m + 0.3 # plus 0.3
+temp_2_6 <- temp$TZ_K + 0.5 # plus 0.5 
+I_field <- approxfun(x = seq(0, length(irradiance_2_6) - 1), y = irradiance_2_6, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_2_6) - 1), y = temp_2_6, rule = 2)
+RCP2.6_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+
+# RCP 4.5 Irradiance + 2.2, Temp + 1 
+irradiance_4.5 <- Irradiance$PAR_1m + 2.2 # plus 2.2
+temp_4.5 <- temp$TZ_K + 1 # plus 1 degree temp
+I_field <- approxfun(x = seq(0, length(irradiance_4.5) - 1), y = irradiance_4.5, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_4.5) - 1), y = temp_4.5, rule = 2)
+RCP4.5_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+
+# RCP 6 Irradiance + 3.7 , Temp + 1.5 
+irradiance_6 <- Irradiance$PAR_1m + 3.7 # plus 3.7
+temp_6 <- temp$TZ_K + 1.5 # plus 1.5 degree temp
+I_field <- approxfun(x = seq(0, length(irradiance_6) - 1), y = irradiance_6, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_6) - 1), y = temp_6, rule = 2)
+RCP6_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+
+# RCP 8.5 Irradiance + 6.2, Temp + 3.4
+irradiance_8_5 <- Irradiance$PAR_1m + 6.2 # plus 6.2
+temp_8_5 <- temp$TZ_K + 3.4 # plus 3.4 degree temp
+I_field <- approxfun(x = seq(0, length(irradiance_8.5) - 1), y = irradiance_8.5, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_8.5) - 1), y = temp_8.5, rule = 2)
+RCP8.5_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
+
+
+
+plot_RCP_biomass_sens <- ggplot() + 
+  geom_line(data = current_df, aes(Date, W, color = "Now"), size = 1) +
+  geom_line(data = RCP2.6_df, aes(Date, W, color = "RCP 2.6"), size = 1) +
+  geom_line(data = RCP4.5_df, aes(Date, W, color = "RCP 4.5"), size = 1) +
+  geom_line(data = RCP6_df, aes(Date, W, color = "RCP 6"), size = 1) +
+  geom_line(data = RCP8.5_df, aes(Date, W, color = "RCP 8.5"), size = 1) +
+  scale_color_manual(values = c(
+    "Now" = "grey",
+    "RCP 2.6" = "black",
+    "RCP 4.5" = "darkblue",
+    "RCP 6"     = "darkgreen",
+    "RCP 8.5" = "red"))+
+    #breaks = c("RCP 2.6", "RCP 4.5", "RCP 6", "RCP 8.5")) +
+  #xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
+  labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams per blade')) +
+  ggtitle("Biomass growth per blade") +
+  theme_minimal()
+
+plot_RCP_length_sens <- ggplot() + 
+  geom_line(data = current_df, aes(Date, L_allometric, color = "Now"), size = 1) +
+  geom_line(data = RCP2.6_df, aes(Date, L_allometric, color = "RCP 2.6"), size = 1) +
+  geom_line(data = RCP4.5_df, aes(Date, L_allometric, color = "RCP 4.5"), size = 1) +
+  geom_line(data = RCP6_df, aes(Date, L_allometric, color = "RCP 6"), size = 1) +
+  geom_line(data = RCP8.5_df, aes(Date, L_allometric, color = "RCP 8.5"), size = 1) +
+  scale_color_manual(values = c(
+    "Now" = "grey",
+    "RCP 2.6" = "black",
+    "RCP 4.5" = "darkblue",
+    "RCP 6"     = "darkgreen",
+    "RCP 8.5" = "red"))+
+  #breaks = c("RCP 2.6", "RCP 4.5", "RCP 6", "RCP 8.5")) +
+  labs(x = "Date (2019-2020)",
+       y = bquote('Physical length (cm per blade)')) +
+  ggtitle("Blade length growth") + 
+  theme_minimal()
 
 
 

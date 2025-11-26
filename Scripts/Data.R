@@ -251,8 +251,8 @@ depth <- ncvar_get(nc2, "depth")
 time <- ncvar_get(nc2, "time")
 nc_close(nc2)
 
-#depth_index <- 1  # surface
-#time_index <- 1   # January
+depth_index <- 1  # surface
+time_index <- 1   # January
 
 tco2_slice <- TCO2[time_index, depth_index, , ]  # dims: lat x lon
 
@@ -273,6 +273,7 @@ plot(TCO2, type = "l",
      main = "Total dissolved inorganic C",
      xlab = "Time index", 
      ylab = "inorgnaic C ")
+<<<<<<< HEAD
 
 #Data CO2
 # Coordinates
@@ -407,6 +408,8 @@ TCO2_monthly <- data.frame(
 
 TCO2_monthly
 write.csv(TCO2_monthly, "DICNovDecJan_Depths0_5_10.csv", row.names = FALSE)
+=======
+>>>>>>> nubia-branch
 
 #Data CO2
 # Coordinates
@@ -430,8 +433,8 @@ depth_indices <- sapply(target_depths, function(z) {
 depth_indices
 
 #Select the timeframe
-time_indices <- c(11, 12, 1, 2, 3, 4, 5)
-months <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May")
+time_indices <- c(10, 11, 12, 1, 2, 3, 4, 5, 6)
+months <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun")
 
 # Create an empty output matrix
 tco2_mat <- matrix(NA, nrow = length(time_indices), ncol = length(depth_indices))
@@ -520,15 +523,15 @@ depth_indices <- sapply(target_depths, function(z) {
 depth_indices
 
 #Select the timeframe
-time_indices <- c(11, 12, 1, 2, 3, 4, 5)
-months <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May")
+time_indices <- c(10, 11, 12, 1, 2, 3, 4, 5, 6)
+months <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun")
 
 # Create an empty output matrix
 tco2_mat <- matrix(NA, nrow = length(time_indices), ncol = length(depth_indices))
 
 for (i in seq_along(time_indices)) {
   for (j in seq_along(depth_indices)) {
-    tco2_mat[i, j] <- TCO2[time_indices[i], depth_indices[j], lat_index, lon_index]
+    tco2_mat[i, j] <- TCO2[time_indices[i], depth_indices[j], lat_index2, lon_index2]
   }
 }
 
@@ -540,7 +543,7 @@ TCO2_monthly <- data.frame(
 )
 
 TCO2_monthly
-write.csv(TCO2_monthly, "DICNovDecJan_Depths0_5_10.csv", row.names = FALSE)
+write.csv(TCO2_monthly, "DICOctJun_Depths0_5_10.csv", row.names = FALSE)
 
 #### Nitrate NOV 2019 MAY 2020 ####
 setwd("D:/R/Wageningen/Seagriculture/Case study")

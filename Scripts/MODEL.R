@@ -532,45 +532,6 @@ plot_depth_DIC <- ggplot() +
 grid.arrange(plot_depth_I, plot_depth_DIC, ncol=2) #gridded plot
 
 
-## Structure, C and N reserves ##
-plot_structure_reserves <- ggplot() +
-    geom_line(data = sea_surface_df, aes(Date, M_V, color = "Sea surface"), size = 1) +
-    geom_line(data = medium_depth_df, aes(Date, M_V, color = "Medium depth"), size = 1) +
-    geom_line(data = large_depth_df, aes(Date, M_V, color = "Large depth"), size = 1) +
-    scale_color_manual(values = c("Sea surface" = "lightblue",
-                                  "Medium depth" = "blue",
-                                  "Large depth" = "darkblue"),
-                       name = "Variable") +
-    labs(x = "Date (2019-2020)",
-         y = bquote('Mol structure')) +
-    ggtitle("Structure in Mol per blade") +
-    theme_minimal()
-
-plot_N_reserves <- ggplot() +
-  geom_line(data = sea_surface_df, aes(Date, m_EN, color = "Sea surface"), size = 1) +
-  geom_line(data = medium_depth_df, aes(Date, m_EN, color = "Medium depth"), size = 1) +
-  geom_line(data = large_depth_df, aes(Date, m_EN, color = "Large depth"), size = 1) +
-  scale_color_manual(values = c("Sea surface" = "lightblue",
-                                "Medium depth" = "blue",
-                                "Large depth" = "darkblue"),
-                     name = "Variable") +
-  labs(x = "Date (2019-2020)",
-       y = bquote('Mol N reserve')) +
-  ggtitle("Reserve density of Nitrate") +
-  theme_minimal()
-
-plot_C_reserves <- ggplot() +
-  geom_line(data = sea_surface_df, aes(Date, m_EC, color = "Sea surface"), size = 1) +
-  geom_line(data = medium_depth_df, aes(Date, m_EC, color = "Medium depth"), size = 1) +
-  geom_line(data = large_depth_df, aes(Date, m_EC, color = "Large depth"), size = 1) +
-  scale_color_manual(values = c("Sea surface" = "lightblue",
-                                "Medium depth" = "blue",
-                                "Large depth" = "darkblue"),
-                     name = "Variable") +
-  labs(x = "Date (2019-2020)",
-       y = bquote('Mol C reserve')) +
-  ggtitle("Reserve density of Carbon") +
-  theme_minimal()
 
 ## Whole blade dry weight in grams ##
 plot_depth_mass <- ggplot() +
@@ -850,6 +811,9 @@ CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
                   y = TCO2_hourly$Depth_0m,
                   rule = 2)
 
+# The change is in Par, not in Iraadiance. The conversion formula is: 
+# Irradiance$PAR_1m = Irradiance$NSW_estimate * PARfrac * C * exp(-k * z) * 3600 / 1000000
+# It does not matter if you multiply Irradiance$NSW_estimate or Irradiance$PAR_1m by the multiplyer. Result is the same. 
 
 irradiance_minus_20 <- Irradiance$PAR_1m * 0.8 
 I_field <- approxfun(x = seq(0, length(irradiance_minus_20) - 1), y = irradiance_minus_20, rule = 2)
@@ -1079,6 +1043,7 @@ sensitivity_analysis_DIC <- generate_sensitivity_df(
   variable_name = "CO_2",
 )
 
+
 sensitivity_analysis_I <- generate_sensitivity_df(
   base_vector = Irradiance$PAR_1m,
   param_name = "Irradiance",
@@ -1174,43 +1139,64 @@ CO_2 <- approxfun(x = seq(0, length(TCO2_hourly$Depth_0m) - 1),
                   y = TCO2_hourly$Depth_0m,
                   rule = 2)
 
-# Need to change still: Add irradiance only to the day. Add to Iraadiance NOT TO PAR.
-
-
-# For the CLimate change scenario's: We need to add the extra mean irradiance to ... , not to the par. 
+# To add Irradiance (in W/m²) to Irradiance$NSW_estimate. We need to update the PAR formula. 
+# formula = Irradiance$NSW_estimate * PARfrac * C * exp(-k * z) * 3600 / 1000000
+# It does not matter if you multiply Irradiance$NSW_estimate or Irradiance$PAR_1m by the multiplyer. Result is the same. 
+#Adding to Kelvin is the same ass adding to degrees celcius, so no conversion is needed.
 
 # Current situation 
 current_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
-# RCP 2.6 Irradiance * 0.3, Temp + 0.5 
-irradiance_2_6 <- Irradiance$PAR_1m + 0.3 # plus 0.3
-temp_2_6 <- temp$TZ_K + 0.5 # plus 0.5 
+avg_IR2019 = mean(Irradiance$NSW_estimate, na.rm = TRUE) # 20/11/2019 19:00:00 till 23/11/2019 23:00:00 there is missing data # W/m^2 
+avg_temp2019 = mean(temp$TZ_K)  # Kelvin
+
+
+
+# RCP 2.6 Irradiance + 0.3, Temp + 0.5 
+avg_IR2100 = avg_IR2019 + 0.3 
+avg_temp2100 = avg_temp2019 + 0.5
+irradiance_2_6 <- Irradiance$PAR_1m * (avg_IR2100 / avg_IR2019)
+temp_2_6 <- temp$TZ_K * (avg_temp2100 / avg_temp2019)
+#irradiance_2_6 <-  (ifelse(Irradiance$NSW_estimate > 0, Irradiance$NSW_estimate + 0.3, Irradiance$NSW_estimate)) * PARfrac * C * exp(-k * z) * 3600 / 1000000
+#temp_2_6 <- temp$TZ_K + 0.5 
 I_field <- approxfun(x = seq(0, length(irradiance_2_6) - 1), y = irradiance_2_6, rule = 2)
 T_field <- approxfun(x = seq(0, length(temp_2_6) - 1), y = temp_2_6, rule = 2)
 RCP2.6_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
 # RCP 4.5 Irradiance + 2.2, Temp + 1 
-irradiance_4.5 <- Irradiance$PAR_1m + 2.2 # plus 2.2
-temp_4.5 <- temp$TZ_K + 1 # plus 1 degree temp
-I_field <- approxfun(x = seq(0, length(irradiance_4.5) - 1), y = irradiance_4.5, rule = 2)
-T_field <- approxfun(x = seq(0, length(temp_4.5) - 1), y = temp_4.5, rule = 2)
+avg_IR2100 = avg_IR2019 + 2.2 
+avg_temp2100 = avg_temp2019 + 1
+temp_4_5 <- temp$TZ_K * (avg_temp2100 / avg_temp2019)
+irradiance_4_5 <- Irradiance$PAR_1m * (avg_IR2100 / avg_IR2019)
+#irradiance_4_5 <- (ifelse(Irradiance$NSW_estimate > 0, Irradiance$NSW_estimate + 2.2, Irradiance$NSW_estimate)) * PARfrac * C * exp(-k * z) * 3600 / 1000000
+#temp_4_5 <- temp$TZ_K + 1 # plus 1 degree temp
+I_field <- approxfun(x = seq(0, length(irradiance_4_5) - 1), y = irradiance_4_5, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_4_5) - 1), y = temp_4_5, rule = 2)
 RCP4.5_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
 # RCP 6 Irradiance + 3.7 , Temp + 1.5 
-irradiance_6 <- Irradiance$PAR_1m + 3.7 # plus 3.7
-temp_6 <- temp$TZ_K + 1.5 # plus 1.5 degree temp
+avg_IR2100 = avg_IR2019 + 3.7  
+avg_temp2100 = avg_temp2019 + 1.5
+temp_6 <- temp$TZ_K * (avg_temp2100 / avg_temp2019)
+irradiance_6 <- Irradiance$PAR_1m * (avg_IR2100 / avg_IR2019)
+#irradiance_6 <- (ifelse(Irradiance$NSW_estimate > 0, Irradiance$NSW_estimate + 3.7, Irradiance$NSW_estimate)) * PARfrac * C * exp(-k * z) * 3600 / 1000000
+#temp_6 <- temp$TZ_K + 1.5 # plus 1.5 degree temp
 I_field <- approxfun(x = seq(0, length(irradiance_6) - 1), y = irradiance_6, rule = 2)
 T_field <- approxfun(x = seq(0, length(temp_6) - 1), y = temp_6, rule = 2)
 RCP6_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
 # RCP 8.5 Irradiance + 6.2, Temp + 3.4
-irradiance_8_5 <- Irradiance$PAR_1m + 6.2 # plus 6.2
-temp_8_5 <- temp$TZ_K + 3.4 # plus 3.4 degree temp
-I_field <- approxfun(x = seq(0, length(irradiance_8.5) - 1), y = irradiance_8.5, rule = 2)
-T_field <- approxfun(x = seq(0, length(temp_8.5) - 1), y = temp_8.5, rule = 2)
+avg_IR2100 = avg_IR2019 + 6.2  
+avg_temp2100 = avg_temp2019 + 3.4
+irradiance_8_5 <- Irradiance$PAR_1m * (avg_IR2100 / avg_IR2019)
+temp_8_5 <- temp$TZ_K + (avg_temp2100 / avg_temp2019)
+#irradiance_8_5 <- (ifelse(Irradiance$NSW_estimate > 0, Irradiance$NSW_estimate + 6.2, Irradiance$NSW_estimate)) * PARfrac * C * exp(-k * z) * 3600 / 1000000
+#temp_8_5 <- temp$TZ_K + 3.4 # plus 3.4 degree temp
+I_field <- approxfun(x = seq(0, length(irradiance_8_5) - 1), y = irradiance_8_5, rule = 2)
+T_field <- approxfun(x = seq(0, length(temp_8_5) - 1), y = temp_8_5, rule = 2)
 RCP8.5_df <- run_model(state = state_Clemente, times = times_NS, rates_func = rates_NS, params = params_NS, TZ_K = temp$TZ_K) 
 
 
@@ -1251,497 +1237,39 @@ plot_RCP_length_sens <- ggplot() +
   ggtitle("Blade length growth") + 
   theme_minimal()
 
+grid.arrange(plot_RCP_biomass_sens, plot_RCP_length_sens, ncol = 2)
 
 
 
-#-------------------------------------------------------------------------------------------------------
-# From here on useless
-#-------------------------------------------------------------------------------------------------------
-#IGNORE
-#read in GSO N data
-#GSO_N <- read.csv("T98BayNitrate.csv", header = TRUE, fileEncoding="UTF-8-BOM") #Import water quality data
-#GSO_N$Date <- mdy(GSO_N$Date) #convert dates
+# BAR PLOT 
 
-#ggplot() + 
-#  geom_line(data = GSO_N, aes(Date, NO3NO2)) +
-#  geom_line(data = Wickford_WSA, aes(Date, NitrateNitrite_uM), color ="red") +                    
-#  geom_line(data = RomePt_WSA, aes(Date, NitrateNitrite_uM), color ="blue") +
-#  geom_line(data = RomePt_WSA2, aes(Date, NO3NO2_µM), color ="blue") +
-#  geom_line(data = Wickford_WSA2, aes(Date, NO3NO2_µM*1000000), color ="red") +  
-  #scale_color_manual(values = c("gray77", "gray60", "gray60", "gray30", "gray30", "gray0", "gray0")) +
-#  theme_bw() +
-#  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  #theme(legend.position="none") +
-#  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  #ylim(0, 10) +
-#  labs(x= "Date", y = bquote('N concentration μmol' ~NO[3]^{"-"}~ 'and'~NO[2]^{"-"}~ 'L'^"-1"))
+current_last <- current_df %>% filter(Date == max(Date, na.rm = TRUE))
+RCP2.6_last <- RCP2.6_df %>% filter(Date == max(Date, na.rm = TRUE))
+RCP4.5_last <- RCP4.5_df %>% filter(Date == max(Date, na.rm = TRUE))
+RCP6_last <- RCP6_df %>% filter(Date == max(Date, na.rm = TRUE))
+RCP8.5_last <- RCP8.5_df %>% filter(Date == max(Date, na.rm = TRUE))
 
+# Add 'Depth' label to each
+current_last$RCP <- "2019"
+RCP2.6_last$RCP <- "RCP 2.6"
+RCP4.5_last$RCP <- "RCP 4.5"
+RCP6_last$RCP <- "RCP 6"
+RCP8.5_last$RCP <- "RCP 8.5"
 
+# Combine into one data frame
+RCPdf_last <- bind_rows(current_last, RCP2.6_last, RCP4.5_last, RCP6_last, RCP8.5_last)
 
-# Rejected C and R (Figure 8????) 
-plot_J_EC_R_PJ <- ggplot() +
-  geom_line(data = sol_all, aes(Date, J_EC_R, color = source)) +
-  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EC_R, color = source)) +
-  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EC_R, color = source)) +
-  scale_color_grey() +
-  #xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  #theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2019-2020)", y = bquote('Rejected C (mol C mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("A)")
+RCPplot_mass_bar <- ggplot(RCPdf_last, aes(x = RCP, y = W)) +
+  geom_col(width = 0.5) +
+  labs(x = "RCP",
+       y = bquote('Blade dry weight \n(g per blade)')) +
+  ggtitle("Final blade dry weight per RCP scenario") +
+  theme_minimal() 
+RCPplot_length_bar <- ggplot(RCPdf_last, aes(x = RCP, y = L_allometric)) +
+  geom_col(width = 0.5) +
+  labs(x = "RCP scenario",
+       y = bquote('Blade length \n(cm per blade)')) +
+  ggtitle("Final blade length per RCP scenario") +
+  theme_minimal() 
+grid.arrange(RCPplot_mass_bar, RCPplot_length_bar, ncol = 2)
 
-plot_J_EN_R_PJ <- ggplot() +
-  geom_line(data = sol_all, aes(Date, J_EN_R, color = source)) +
-  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, J_EN_R, color = source)) +
-  #geom_line(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, J_EN_R, color = source)) +
-  scale_color_grey() +
-  #xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-06-01 23:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2019-2020)", y = bquote('Rejected N (mol N mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("B)")
-
-grid.arrange(plot_J_EC_R_PJ, plot_J_EN_R_PJ, ncol=2)
-
-
-# Relaxation rate --> Figure 9
-plot_T_PJ <- ggplot() + 
-  geom_line(data = sol_all, aes(Date, C_T)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 00:00:00"))) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.title = element_blank()) +
-  theme(legend.position="none") + 
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2019-2020)", y = "Temperature correction factor") +
-  ggtitle("A)")
-plot_I_PJ <- ggplot() + 
-  geom_line(data = sol_all, aes(Date, I)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 00:00:00"))) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
-  ggtitle("B)")
-plot_J_I_PJ <- ggplot() + #???? look at the time (2 h 06-01 extra??) 
-  geom_line(data = sol_all, aes(Date, J_I, color = source)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 02:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2019-2020)", y = bquote('Specific relaxation rate (mol γ mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("C)")
-plot_J_EC_A_PJ <- ggplot() +
-  geom_line(data = sol_all, aes(Date, J_EC_A, color = source)) +
-  scale_color_grey() +
-  xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-06-01 02:00:00"))) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") + 
-  labs(x= "Date (2019-2020)", y = bquote('Specific C assimilation (mol C mol V'^"-1"*' h'^"-1"*')')) +
-  ggtitle("D)")
-grid.arrange(plot_T_PJ, plot_I_PJ, plot_J_I_PJ, plot_J_EC_A_PJ, ncol=2)
-
-
-# ----------------------------------------------------------------------
-# Now its only field data and Literature data for comparison/Calibration
-#----------------------------------------------------------------------
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#END FIELD DATA, START LITERATURE DATA FOR CALIBRATION
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #9C
-###### N forcing set-up##############
-Nmax <- 73.1221719/1000000 #M
-
-###### Temperature forcing set-Up #############
-#9 C is 282.15 K
-T_dat <- 9 #C (conversion in Nuptake function to K)
-###################################
-#Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_9 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
-sol_EspinozaChapman1983_N_9 <- as.data.frame(sol_EspinozaChapman1983_N_9) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Setting up the forcing functions for Espinoza and Chapman (1983) nitrogen uptake #18C
-###### N forcing set-up##############
-Nmax <- 76.9543147/1000000 #M
-
-###### Temperature forcing set-Up #############
-#18 C is 282.15 K
-T_dat <- 18 #C (conversion in Nuptake function to K)
-#################################
-#Model run (the differential equation solver)
-sol_EspinozaChapman1983_N_18 <- Nuptake(params_NS, T_dat, Nmax, w_EN) #function from N_uptake_Calibration.R code
-sol_EspinozaChapman1983_N_18 <- as.data.frame(sol_EspinozaChapman1983_N_18) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Photosynthesis model calibration
-##### Temp forcing set-up ####
-T_dat <- 14 #C (maintained for entire experiment
-###### I forcing set-up #####
-I_max <- 3233205 #micromol photons m-2 h-1
-##############
-sol_Johansson2002 <- Photosynthesis(params_NS, state_Clemente, w_V, w_EN, w_EC, w_O2, T_dat, I_max) #function from Photosynthesis_Calibration.R
-sol_Johansson2002 <- as.data.frame(sol_Johansson2002) #conversion to dataframe for later use
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-##### Kelp Field Data Comparison plot (Figure 7) ####
-#import field data
-KelpY1 <- read.csv("Year1kelpdata.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-names(KelpY1)[2] <- "Site"
-KelpY1 <- filter(KelpY1, Site != "Fox Island")
-KelpY1$Date <- mdy(KelpY1$SamplingDate)
-KelpY1$SiteLine <- paste(KelpY1$Site, KelpY1$Line)
-KelpY1 <- filter(KelpY1, SiteLine != "Narragansett Bay N 2")
-KelpY2 <- read.csv("Year2kelpdata.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-names(KelpY2)[2] <- "Site"
-KelpY2 <- filter(KelpY2, Site != "Fox Island")
-KelpY2$Date <- mdy(KelpY2$SamplingDate)
-KelpY2$SiteLine <- paste(KelpY2$Site, KelpY2$Line)
-KelpY2 <- filter(KelpY2, SiteLine != "Narragansett Bay N 2")
-
-NBN1_meandat <- KelpY1[KelpY1$SiteLine == "Narragansett Bay N 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length))
-NBN1_meandat$Date <- as.POSIXct(NBN1_meandat$Date)
-NBN1_meandat_sub <- NBN1_meandat[2:6,]
-erNBN1 <- merge(NBN1_meandat_sub, sol_all[sol_all$source == "Narragansett Bay N 1",], all.x = TRUE)
-NBN1_rmse <- rmse(erNBN1$mean_length, erNBN1$L_allometric)
-NBN1_rmse <- round(NBN1_rmse, 2)()
-
-NBN1_meandat$Date <- as.POSIXct(NBN1_meandat$Date)
-NBN1 <- ggplot() + 
-  geom_point(data = NBN1_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(NBN1_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all[sol_all$source == "Narragansett Bay N 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-24 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", NBN1_rmse)) +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-04-24 23:00:00"))) +
-  scale_color_manual(values = c("gray0")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2017-2018)", y = "Blade length (cm)") +
-  ggtitle("Narragansett Bay N") +
-  theme(legend.position="none")
-
-NBS1_meandat <- KelpY1[KelpY1$SiteLine == "Narragansett Bay S 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-NBS1_meandat$Date <- as.POSIXct(NBS1_meandat$Date)
-NBS1_meandat_sub <- NBS1_meandat[2:6,]
-erNBS1 <- merge(NBS1_meandat_sub, sol_all[sol_all$source == "Narragansett Bay S 1",], all.x = TRUE)
-NBS1_rmse <- rmse(erNBS1$mean_length, erNBS1$L_allometric)
-
-NBS2_meandat <- KelpY1[KelpY1$SiteLine == "Narragansett Bay S 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-NBS2_meandat$Date <- as.POSIXct(NBS2_meandat$Date)
-NBS2_meandat_sub <- NBS2_meandat[2:6,]
-erNBS2 <- merge(NBS2_meandat_sub, sol_all[sol_all$source == "Narragansett Bay S 2",], all.x = TRUE)
-NBS2_rmse <- rmse(erNBS2$mean_length, erNBS2$L_allometric)
-
-NBS1_2 <- ggplot() + 
-  geom_point(data = NBS1_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(NBS1_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all[sol_all$source == "Narragansett Bay S 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-24 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", NBS1_rmse)) +
-  geom_point(data = NBS2_meandat, aes(Date, mean_length), color = "gray50", size = 3) +
-  geom_errorbar(NBS2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all[sol_all$source == "Narragansett Bay S 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-24 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", NBS2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-04-24 23:00:00"))) +
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2017-2018)", y = "Blade length (cm)") +
-  ggtitle("Narragansett Bay S") +
-  theme(legend.position="none")
-
-PJS1_meandat <- KelpY1[KelpY1$SiteLine == "Point Judith Pond S 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJS1_meandat$Date <- as.POSIXct(PJS1_meandat$Date)
-PJS1_meandat_sub <- PJS1_meandat[2:6,]
-erPJS1 <- merge(PJS1_meandat_sub, sol_all[sol_all$source == "Point Judith Pond S 1",], all.x = TRUE)
-PJS1_rmse <- rmse(erPJS1$mean_length, erPJS1$L_allometric)
-
-PJS2_meandat <- KelpY1[KelpY1$SiteLine == "Point Judith Pond S 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJS2_meandat$Date <- as.POSIXct(PJS2_meandat$Date)
-PJS2_meandat_sub <- PJS2_meandat[2:6,]
-erPJS2 <- merge(PJS2_meandat_sub, sol_all[sol_all$source == "Point Judith Pond S 2",], all.x = TRUE)
-PJS2_rmse <- rmse(erPJS2$mean_length, erPJS2$L_allometric)
-
-PJS1_2 <- ggplot() + 
-  geom_point(data = PJS1_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(PJS1_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all[sol_all$source == "Point Judith Pond S 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-01 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", PJS1_rmse)) +
-  geom_point(data = PJS2_meandat, aes(Date, mean_length), color = "gray50", size = 3) +
-  geom_errorbar(PJS2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all[sol_all$source == "Point Judith Pond S 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-01 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", PJS2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-04-24 23:00:00"))) +
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2017-2018)", y = "Blade length (cm)") +
-  ggtitle("Point Judith Pond S") +
-  theme(legend.position="none")
-
-PJN1_meandat <- KelpY1[KelpY1$SiteLine == "Point Judith Pond N 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJN1_meandat$Date <- as.POSIXct(PJN1_meandat$Date)
-PJN1_meandat_sub <- PJN1_meandat[2:6,]
-erPJN1 <- merge(PJN1_meandat_sub, sol_all[sol_all$source == "Point Judith Pond N 1",], all.x = TRUE)
-PJN1_rmse <- rmse(erPJN1$mean_length, erPJN1$L_allometric)
-
-PJN2_meandat <- KelpY1[KelpY1$SiteLine == "Point Judith Pond N 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJN2_meandat$Date <- as.POSIXct(PJN2_meandat$Date)
-PJN2_meandat_sub <- PJN2_meandat[2:6,]
-erPJN2 <- merge(PJN2_meandat_sub, sol_all[sol_all$source == "Point Judith Pond N 2",], all.x = TRUE)
-PJN2_rmse <- rmse(erPJN2$mean_length, erPJN2$L_allometric)
-
-
-PJN1_2 <- ggplot() + 
-  geom_point(data = PJN1_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(PJN1_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all[sol_all$source == "Point Judith Pond N 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-24 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", PJN1_rmse)) +
-  geom_point(data = PJN2_meandat, aes(Date, mean_length), color ="gray50", size = 3) +
-  geom_errorbar(PJN2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all[sol_all$source == "Point Judith Pond N 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2018-04-24 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", PJN2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2017-10-30 23:00:00", "2018-04-24 23:00:00"))) +
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2017-2018)", y = "Blade length (cm)") +
-  ggtitle("Point Judith Pond N") +
-  theme(legend.position="none")
-
-NBN1_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Narragansett Bay N 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-NBN1_Y2_meandat$Date <- as.POSIXct(NBN1_Y2_meandat$Date)
-NBN1_Y2_meandat_sub <- NBN1_Y2_meandat[2:5,]
-erNBN1_Y2 <- merge(NBN1_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Narragansett Bay N 1",], all.x = TRUE)
-NBN1_Y2_rmse <- rmse(erNBN1_Y2$mean_length, erNBN1_Y2$L_allometric)
-
-NBN1_Y2 <- ggplot() + 
-  geom_point(data = NBN1_Y2_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(NBN1_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Narragansett Bay N 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", NBN1_Y2_rmse)) +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2018-12-01 12:00:00", "2019-05-30 12:00:00"))) +
-  scale_color_manual(values = c("gray0")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2018-2019)", y = "Blade length (cm)") +
-  ggtitle("Narragansett Bay N") +
-  theme(legend.position="none")
-
-NBS1_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Narragansett Bay S 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-NBS1_Y2_meandat$Date <- as.POSIXct(NBS1_Y2_meandat$Date)
-NBS1_Y2_meandat_sub <- NBS1_Y2_meandat[2:4,]
-erNBS1_Y2 <- merge(NBS1_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Narragansett Bay S 1",], all.x = TRUE)
-NBS1_Y2_rmse <- rmse(erNBS1_Y2$mean_length, erNBS1_Y2$L_allometric)
-
-NBS2_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Narragansett Bay S 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-NBS2_Y2_meandat$Date <- as.POSIXct(NBS2_Y2_meandat$Date)
-NBS2_Y2_meandat_sub <- NBS2_Y2_meandat[2:3,]
-erNBS2_Y2 <- merge(NBS2_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Narragansett Bay S 2",], all.x = TRUE)
-NBS2_Y2_rmse <- rmse(erNBS2_Y2$mean_length, erNBS2_Y2$L_allometric)
-
-NBS1_2_Y2 <- ggplot() + 
-  geom_point(data = NBS1_Y2_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(NBS1_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Narragansett Bay S 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", NBS1_Y2_rmse)) +
-  geom_point(data = NBS2_Y2_meandat, aes(Date, mean_length), color = "gray50", size = 3) +
-  geom_errorbar(NBS2_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Narragansett Bay S 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", NBS2_Y2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2018-12-01 12:00:00", "2019-05-30 12:00:00"))) +
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2018-2019)", y = "Blade length (cm)") +
-  ggtitle("Narragansett Bay S") +
-  theme(legend.position="none")
-
-PJS1_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Point Judith Pond S 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJS1_Y2_meandat$Date <- as.POSIXct(PJS1_Y2_meandat$Date)
-PJS1_Y2_meandat_sub <- PJS1_Y2_meandat[2:6,]
-erPJS1_Y2 <- merge(PJS1_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], all.x = TRUE)
-PJS1_Y2_rmse <- rmse(erPJS1_Y2$mean_length, erPJS1_Y2$L_allometric)
-
-PJS2_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Point Judith Pond S 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJS2_Y2_meandat$Date <- as.POSIXct(PJS2_Y2_meandat$Date)
-PJS2_Y2_meandat_sub <- PJS2_Y2_meandat[2:4,]
-erPJS2_Y2 <- merge(PJS2_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 2",], all.x = TRUE)
-PJS2_Y2_rmse <- rmse(erPJS2_Y2$mean_length, erPJS2_Y2$L_allometric)
-
-PJS1_2_Y2 <- ggplot() + 
-  geom_point(data = PJS1_Y2_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(PJS1_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", PJS1_Y2_rmse)) +
-  geom_point(data = PJS2_Y2_meandat, aes(Date, mean_length), color = "gray50", size = 3) +
-  geom_errorbar(PJS2_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond S 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", PJS2_Y2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2018-12-01 12:00:00", "2019-05-30 12:00:00"))) + 
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2018-2019)", y = "Blade length (cm)") +
-  ggtitle("Point Judith Pond S") +
-  theme(legend.position="none")
-
-PJN1_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Point Judith Pond N 1",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJN1_Y2_meandat$Date <- as.POSIXct(PJN1_Y2_meandat$Date)
-PJN1_Y2_meandat_sub <- PJN1_Y2_meandat[2:6,]
-erPJN1_Y2 <- merge(PJN1_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], all.x = TRUE)
-PJN1_Y2_rmse <- rmse(erPJN1_Y2$mean_length, erPJN1_Y2$L_allometric)
-
-PJN2_Y2_meandat <- KelpY2[KelpY2$SiteLine == "Point Judith Pond N 2",] %>%
-  group_by(Date) %>%
-  summarize(mean_length = mean(Length, na.rm = TRUE), sd_length = sd(Length, na.rm = TRUE))
-PJN2_Y2_meandat$Date <- as.POSIXct(PJN2_Y2_meandat$Date)
-PJN2_Y2_meandat_sub <- PJN2_Y2_meandat[2:4,]
-erPJN2_Y2 <- merge(PJN2_Y2_meandat_sub, sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 2",], all.x = TRUE)
-PJN2_Y2_rmse <- rmse(erPJN2_Y2$mean_length, erPJN2_Y2$L_allometric)
-
-PJN1_2_Y2 <- ggplot() + 
-  geom_point(data = PJN1_Y2_meandat, aes(Date, mean_length), shape = 'diamond', size = 3) +
-  geom_errorbar(PJN1_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1) +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 1",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 250, hjust = 1), label = sprintf("RMSE: %f", PJN1_Y2_rmse)) +
-  geom_point(data = PJN2_Y2_meandat, aes(Date, mean_length), color = "gray50", size = 3) +
-  geom_errorbar(PJN2_Y2_meandat, mapping = aes(x = Date, ymin = mean_length-sd_length, ymax = mean_length+sd_length), width = 1, color = "gray50") +
-  geom_smooth(data = sol_all_Y2[sol_all_Y2$source == "Point Judith Pond N 2",], aes(Date, L_allometric, color = source)) +
-  geom_label(aes(as.POSIXct("2019-05-30 01:00:00"), 230, hjust = 1), label = sprintf("RMSE: %f", PJN2_Y2_rmse), color = "gray50") +
-  ylim(0, 258) +
-  xlim(as.POSIXct(c("2018-12-01 12:00:00", "2019-05-30 12:00:00"))) +
-  scale_color_manual(values = c("gray0", "gray50")) +
-  theme_bw() +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  labs(x= "Date (2018-2019)", y = "Blade length (cm)") +
-  ggtitle("Point Judith Pond N") +
-  theme(legend.position="none")
-
-grid.arrange(NBN1, NBS1_2, PJN1_2, PJS1_2, NBN1_Y2, NBS1_2_Y2, PJN1_2_Y2, PJS1_2_Y2, ncol=4)
-
-
-
-
-########
-##### Literature data for comparison/Calibration ####
-######## Nitrate uptake ####
-#Espinoza and Chapman (1983) and Ahn et al. (1998)
-EC1983_9C_Nuptake_StM <- read.csv("EspinozaChapman1983_Nuptake_9C_StMargaretsBay.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-EC1983_18C_Nuptake_StM <- read.csv("EspinozaChapman1983_Nuptake_18C_StMargaretsBay.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-
-#conversions 9C
-EC1983_9C_Nuptake_StM$N <- EC1983_9C_Nuptake_StM$ResidualNitrateConcentration
-EC1983_9C_Nuptake_StM$N <- round(EC1983_9C_Nuptake_StM$N, digits = 2)
-EC1983_9C_Nuptake_StM$N <- EC1983_9C_Nuptake_StM$N/1000000 #microM to M
-EC1983_9C_Nuptake_StM$NuptakeRate <- EC1983_9C_Nuptake_StM$NuptakeRate/1000000/w_EN #convert micro g N gDW–1 h–1 to mol N gDW–1 h–1
-#conversions 18C
-EC1983_18C_Nuptake_StM$N <- EC1983_18C_Nuptake_StM$ResidualNitrateConcentration
-EC1983_18C_Nuptake_StM$N <- round(EC1983_18C_Nuptake_StM$N, digits = 2)
-EC1983_18C_Nuptake_StM$N <- EC1983_18C_Nuptake_StM$N/1000000 #microM to M
-EC1983_18C_Nuptake_StM$NuptakeRate <- EC1983_18C_Nuptake_StM$NuptakeRate/1000000/w_EN
-
-#testing rounding
-sol_EspinozaChapman1983_N_9$N <- round(sol_EspinozaChapman1983_N_9$N*1000000, digits = 3)/1000000
-sol_EspinozaChapman1983_N_18$N <- round(sol_EspinozaChapman1983_N_18$N*1000000, digits = 3)/1000000
-
-N_calibration <- ggplot() +
-  geom_line(data = sol_EspinozaChapman1983_N_9, mapping = aes(x = N*1000000, y = J_EN_A*1000000, color = "Model of Espinoza and Chapman (1983) at 9°C")) +
-  geom_line(data = sol_EspinozaChapman1983_N_18, mapping = aes(x = N*1000000, y = J_EN_A*1000000, color = "Model of Espinoza and Chapman (1983) at 18°C")) +
-  geom_point(data = EC1983_9C_Nuptake_StM, mapping = aes(x = N*1000000, y = NuptakeRate*1000000, color="Espinoza and Chapman (1983), St. Margaret's Bay, 9°C"), size=3) +
-  geom_point(data = EC1983_18C_Nuptake_StM, mapping = aes(x = N*1000000, y = NuptakeRate*1000000, color="Espinoza and Chapman (1983), St. Margaret's Bay, 18°C"), shape = 23, fill = 'grey', size=3) +
-  xlim(0, 80) +
-  scale_color_manual(values = c("gray60", "gray0", "gray60", "gray0")) +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(legend.position="none") +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= bquote('N Concentration (μmol' ~NO[3]^{"-"}~ 'L'^"-1"*')'), y = bquote('N uptake (μmol' ~NO[3]^{"-"}~ 'g DW'^"-1"*' h'^"-1"*')')) +
-  ggtitle('a)')
-
-#Error calculations
-er9 <- merge(EC1983_9C_Nuptake_StM, sol_EspinozaChapman1983_N_9, all.x = TRUE)
-rmse(er9$NuptakeRate, er9$J_EN_A) #3.683799e-07
-
-er18 <- merge(EC1983_18C_Nuptake_StM, sol_EspinozaChapman1983_N_18, all.x = TRUE)
-rmse(er18$NuptakeRate, er18$J_EN_A) #2.606024e-07
-
-######## Photosynthesis related ####
-#Johansson2002
-Johansson2002 <- read.csv("Johansson2002.csv", header = TRUE, fileEncoding="UTF-8-BOM")
-#conversions
-Johansson2002$Irradiance <- Johansson2002$Irradiance*3600*1e-6 #micromol photons m-2 s-1 to mol photons m-2 h-1
-Johansson2002$O2production <- Johansson2002$O2production/1e+6*32/1000*3600 #micromol O2 kg DW-1 s-1 to g O2/g/h
-Johansson2002$O2productionSHIFT <- Johansson2002$O2production + 0.001720976 #from net to gross
-
-Photosynthesis_calibration <- ggplot(data = Johansson2002) +
-  geom_line(data = sol_Johansson2002, mapping = aes(x = I, y = J_O*1000)) +
-  geom_point(mapping = aes(x = Irradiance, y = O2productionSHIFT*1000), size = 3) +
-  scale_color_grey() +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank()) +
-  theme(axis.text=element_text(size=12), axis.title=element_text(size=16)) +
-  labs(x= bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)"), y = bquote('Oxygen production (mg' ~O[2]~ 'g DW'^"-1"*' h'^"-1"*')')) +
-  ggtitle('b)')
-
-#error calculations
-Johansson2002$I <- round(Johansson2002$Irradiance, digits = 6)
-sol_Johansson2002$I <- round(sol_Johansson2002$I, digits = 6)
-erPhoto <- merge(Johansson2002, sol_Johansson2002, all.x = TRUE)
-rmse(erPhoto$O2productionSHIFT, erPhoto$J_O)
-
-######## Combine calibration plot (Figure 5) #######
-#Figure 5
-grid.arrange(N_calibration, Photosynthesis_calibration, ncol=2)

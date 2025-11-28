@@ -380,16 +380,14 @@ grid.arrange(plot_I, plot_T, plot_N, plot_DIC, ncol=2) #gridded plot
 
 ## Structure, C and N reserves ##
 (plot_reserves <- ggplot() +
-  geom_line(data = sol_all, aes(Date, M_V,  color = "Mol structure"),  size = 1) +
   geom_line(data = sol_all, aes(Date, m_EC, color = "Mol C reserve"), size = 1) +
   geom_line(data = sol_all, aes(Date, m_EN, color = "Mol N reserve"), size = 1) +
-  scale_color_manual(values = c("Mol structure" = "blue",
-                                "Mol C reserve" = "red",
+  scale_color_manual(values = c("Mol C reserve" = "red",
                                 "Mol N reserve" = "green"),
                      name = "Variable") +
   labs(x = "Date (2019-2020)",
-       y = bquote('Mol/L')) +
-  ggtitle("Structure and reserve density (of C and N)") +
+       y = bquote('mol/mol V')) +
+  ggtitle("Reserve density (of C and N) per mol structure") +
   theme_minimal())
 
 ## Whole blade dry weight in grams ##
@@ -657,10 +655,13 @@ plot_temp_sens <- ggplot() +
     "0 %"     = "black",
     "- 10 %" = "purple",
     "- 20 %" = "lightblue"),
-    breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
+    breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %"))+
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Temperature in gedrees Celcius')) +
-  ggtitle("Temperature sensitivity analysis")
+  ggtitle("Temperature sensitivity analysis") + 
+  theme_minimal() + 
+  theme(legend.position = "none")  
+  
 
 plot_biomass_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, W, color = "+ 20 %"), size = 1) +
@@ -677,7 +678,9 @@ plot_biomass_temp_sens <- ggplot() +
                      breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams per blade')) +
-  ggtitle("Biomass growth in varing temperatures")
+  ggtitle("Biomass growth in varing temperatures") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
 
 plot_length_temp_sens <- ggplot() + 
   geom_line(data = temp_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
@@ -694,9 +697,10 @@ plot_length_temp_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm per blade)')) +
-  ggtitle("Blade length growth in varing temperatures")
+  ggtitle("Blade length growth in varing temperatures") + 
+  theme_minimal() 
 
-grid.arrange(plot_temp_sens, plot_length_temp_sens, plot_biomass_temp_sens, ncol=3) #gridded plot
+grid.arrange(plot_temp_sens, plot_biomass_temp_sens, plot_length_temp_sens, ncol=3) #gridded plot
 
 
 
@@ -756,7 +760,9 @@ plot_N_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('N concentration mol' ~NO[3]^{"-"}~ 'and' ~NO[2]^{"-"}~ 'L'^"-1")) +
-  ggtitle("Nitrate sensitivity analysis")
+  ggtitle("Nitrate sensitivity analysis") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
 
 
 plot_biomass_N_sens <- ggplot() + 
@@ -774,7 +780,10 @@ plot_biomass_N_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams per blade')) +
-  ggtitle("Biomass growth per blade")
+  ggtitle("Biomass growth per blade") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
+  
 
 plot_length_N_sens <- ggplot() + 
   geom_line(data = N_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
@@ -791,10 +800,11 @@ plot_length_N_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm per blade)')) +
-  ggtitle("Blade length growth") 
+  ggtitle("Blade length growth") + 
+  theme_minimal() 
 
 
-grid.arrange(plot_N_sens, plot_length_N_sens, plot_biomass_N_sens, ncol=3) #gridded plot
+grid.arrange(plot_N_sens, plot_biomass_N_sens, plot_length_N_sens, ncol=3) #gridded plot
 
 
 #--------------------------------------------------------------------
@@ -850,7 +860,9 @@ plot_I_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Irradiance (mol γ m'^"-2"*' h'^"-1)")) +
-  ggtitle("Irradiance sensitivity analysis")
+  ggtitle("Irradiance sensitivity analysis") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
 
 
 plot_biomass_I_sens <- ggplot() + 
@@ -868,7 +880,9 @@ plot_biomass_I_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams per blade')) +
-  ggtitle("Biomass growth per blade")
+  ggtitle("Biomass growth per blade") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
 
 plot_length_I_sens <- ggplot() + 
   geom_line(data = irradiance_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
@@ -885,10 +899,12 @@ plot_length_I_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm per blade)')) +
-  ggtitle("Blade length growth") 
+  ggtitle("Blade length growth") + 
+  theme_minimal()
+  
 
 
-grid.arrange(plot_I_sens, plot_length_I_sens, plot_biomass_I_sens, ncol=3) #gridded plot
+grid.arrange(plot_I_sens, plot_biomass_I_sens, plot_length_I_sens, ncol=3) #gridded plot
 
 
 
@@ -942,7 +958,8 @@ plot_DIC_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('DIC concentration mol'~ 'L'^"-1")) +
-  ggtitle("DIC sensitivity analysis")
+  ggtitle("DIC sensitivity analysis") + 
+  theme_minimal() 
 
 
 plot_biomass_DIC_sens <- ggplot() + 
@@ -960,7 +977,9 @@ plot_biomass_DIC_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   xlim(as.POSIXct(c("2019-11-01 00:00:00", "2020-05-31 24:00:00"))) +
   labs(x= "Date (2019-2020)", y = bquote('Blade dry weight in grams per blade')) +
-  ggtitle("Biomass growth per blade")
+  ggtitle("Biomass growth per blade") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
 
 plot_length_DIC_sens <- ggplot() + 
   geom_line(data = DIC_plus_20_df, aes(Date, L_allometric, color = "+ 20 %"), size = 1) +
@@ -977,10 +996,11 @@ plot_length_DIC_sens <- ggplot() +
     breaks = c("+ 20 %", "+ 10 %", "0 %", "- 10 %", "- 20 %")) +
   labs(x = "Date (2019-2020)",
        y = bquote('Physical length (cm per blade)')) +
-  ggtitle("Blade length growth") 
+  ggtitle("Blade length growth") + 
+  theme_minimal()
 
 
-grid.arrange(plot_DIC_sens, plot_length_DIC_sens, plot_biomass_DIC_sens, ncol=3) #gridded plot
+grid.arrange(plot_DIC_sens, plot_biomass_DIC_sens, plot_length_DIC_sens, ncol=3) #gridded plot
 
 
 #----------------------------------------------------------------------------------------
@@ -1093,7 +1113,8 @@ plot_sensitivity_mass_line <- ggplot(
     color = "Environmental factor"
   ) +
   ggtitle("Final blade dry weight") +
-  theme_minimal()
+  theme_minimal()  
+  
 
 
 plot_sensitivity_length_line <- ggplot(
@@ -1117,7 +1138,7 @@ plot_sensitivity_length_line <- ggplot(
     color = "Environmental factor"
   ) +
   ggtitle("Final blade length") +
-  theme_minimal()
+  theme_minimal()  
 
 # Combine plots side-by-side
 grid.arrange(plot_sensitivity_mass_line, plot_sensitivity_length_line, ncol = 2)

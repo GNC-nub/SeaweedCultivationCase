@@ -379,16 +379,33 @@ grid.arrange(plot_I, plot_T, plot_N, plot_DIC, ncol=2) #gridded plot
 
 
 ## Structure, C and N reserves ##
-(plot_reserves <- ggplot() +
+plot_reserves <- ggplot() +
   geom_line(data = sol_all, aes(Date, m_EC, color = "Mol C reserve"), size = 1) +
   geom_line(data = sol_all, aes(Date, m_EN, color = "Mol N reserve"), size = 1) +
+  geom_line(data = sol_all, aes(Date, M_V, color = "Mol V (structure)"), size = 1) +
   scale_color_manual(values = c("Mol C reserve" = "red",
-                                "Mol N reserve" = "green"),
-                     name = "Variable") +
+                                "Mol N reserve" = "green",
+                                "Mol V (structure)" = "black"),
+                     name = "Reserve density C or N") +
   labs(x = "Date (2019-2020)",
-       y = bquote('mol/mol V')) +
+       y = bquote('mol Ei/molM_V')) +
   ggtitle("Reserve density (of C and N) per mol structure") +
-  theme_minimal())
+  theme_minimal()
+
+# rejected C and N (mol Ei/molM_V/h)
+plot_rejected <- ggplot() +
+    geom_line(data = sol_all, aes(Date, J_EC_R, color = "Mol C rejection"), size = 1) +
+    geom_line(data = sol_all, aes(Date, J_EN_R, color = "Mol N rejection"), size = 1) +
+    scale_color_manual(values = c("Mol C rejection" = "red",
+                                  "Mol N rejection" = "green"),
+                       name = "Rejected C or N") +
+    labs(x = "Date (2019-2020)",
+         y = bquote('mol Ei/molM_V/h')) +
+    ggtitle("Rejected C and N per mol structure") +
+    theme_minimal()
+
+grid.arrange(plot_reserves, plot_rejected, ncol=2) #grided plot
+
 
 ## Whole blade dry weight in grams ##
 plot_mass <- ggplot() +
@@ -1293,4 +1310,11 @@ RCPplot_length_bar <- ggplot(RCPdf_last, aes(x = RCP, y = L_allometric)) +
   ggtitle("Final blade length per RCP scenario") +
   theme_minimal() 
 grid.arrange(RCPplot_mass_bar, RCPplot_length_bar, ncol = 2)
+
+
+# PLOT rejected C AND N 
+
+
+
+
 

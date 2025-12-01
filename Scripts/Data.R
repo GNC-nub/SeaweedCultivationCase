@@ -478,3 +478,11 @@ Nitrate_NovMay <- rbind(NovDecJan, FebMarAprMay)
 
 #Save the final dataset for nitrate as a .csv file
 write.csv(Nitrate_NovMay, "Nitrate_NovMay.csv", row.names = FALSE)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Temperature ####
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#See python files 
+

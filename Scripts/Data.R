@@ -483,6 +483,30 @@ write.csv(Nitrate_NovMay, "Nitrate_NovMay.csv", row.names = FALSE)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Temperature ####
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
-#See python files 
+temp_file <- "uurgeg_321_2011-2020.txt" 
+lines_temp <- readLines(temp_file)
+
+# Find the first line that starts with "#"
+header_line <- grep("^#", lines_temp)[1]
+lines_temp[header_line] <- sub("^#", "", lines_temp[header_line])
+
+temp_tmp <- tempfile() 
+writeLines(lines_temp, temp_tmp)
+# Read the table starting from that line
+# skip = header_line - 1 because skip counts number of lines to skip
+df_temp <- read.table(temp_tmp, sep = ",", skip = header_line - 1, header = TRUE, comment.char = "")
+
+
+df_temp$dates <- as.Date(as.character(df_temp$YYYYMMDD), format = "%Y%m%d")
+df_temp$dates <- as.character(df_temp$dates)
+df_temp$hour <- as.character(df_temp$HH)
+
+df_temp_filterd <- df_temp[, c("dates", "hour", "TZ")]
+df_temp_filterd <- df_temp_filterd[df_temp_filterd$dates >= as.Date("2019-01-01"), ]
+rownames(df_temp_filterd) <- NULL
+
+write.csv(df_temp_filterd, "temperature_20192020.csv", row.names = FALSE)
+
 

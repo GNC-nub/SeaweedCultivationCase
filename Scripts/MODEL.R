@@ -177,8 +177,8 @@ nitrate_hourly$no3 <- nitrate_hourly$no3/1000000
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Sea surface temperature 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-temp <- read.csv("temperatue_20192020.csv")
-temp <- temp[7273:12385,]
+temp <- read.csv("temperature_20192020.csv")
+temp <- temp[7297:12408,]
 temp <- temp %>%
   mutate(
     # parse date
@@ -190,7 +190,7 @@ temp <- temp %>%
     TZ = TZ/10
   )
 temp$TZ_K <- temp$TZ+273.15 #kelvin
-temp <- temp[-nrow(temp), ]
+nrow(temp)
 #T_field <- make_function(temp$TZ_K)
 TZ_K <- temp$TZ_K
 

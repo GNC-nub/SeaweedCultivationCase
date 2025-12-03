@@ -8,7 +8,7 @@
 ####################################################################################################################
 
 #Reminder to set working directory to location of data
-setwd("D:/R/Wageningen/Seagriculture/Case study")
+setwd("/Users/nubia/PycharmProjects/seaweedTempsNorthSea/Scripts")
 
 #Import libraries
 library(raster)
